@@ -1,3 +1,5 @@
 // include file
 
-void printer(void);
+#define PROJECT_NAME "Raycast"
+
+void printSetupMessages(void);
