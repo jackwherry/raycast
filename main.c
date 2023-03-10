@@ -124,7 +124,7 @@ int main(int argc, char* argv[]) {
 
 	state.window = SDL_CreateWindow(PROJECT_NAME, SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
-		SCREEN_WIDTH*2 , SCREEN_HEIGHT*2,
+		SCREEN_WIDTH*3 , SCREEN_HEIGHT*3,
 		SDL_WINDOW_ALLOW_HIGHDPI);
 	assert(state.window);
 
