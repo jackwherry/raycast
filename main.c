@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
 
 	state.window = SDL_CreateWindow(PROJECT_NAME, SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
-		680, 480,
+		SCREEN_WIDTH*2 , SCREEN_HEIGHT*2,
 		0);
 	assert(state.window);
 
