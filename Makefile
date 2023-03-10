@@ -4,10 +4,10 @@ CC=clang
 # Compiler flags
 CFLAGS = -I. -O2 -g -std=gnu17 -Wall -Wextra -Wfloat-equal -Wundef 
 CFLAGS += -Wshadow -Wpointer-arith -Wcast-align -Wstrict-prototypes
-CFLAGS += -Wwrite-strings -Waggregate-return -Wcast-qual $(LDINCLUDES)
+CFLAGS += -Wwrite-strings -Waggregate-return -Wcast-qual $(CCINCLUDES)
 
 # Outside includes (separate from LDFLAGS to avoid an unused flag warning)
-LDINCLUDES = -F/Library/Frameworks -I/Library/Frameworks/SDL2.framework/Headers
+CCINCLUDES = -F/Library/Frameworks -I/Library/Frameworks/SDL2.framework/Headers
 
 # Linker flags
 #	(note: you must have SDL2 installed to /Library/Frameworks)
