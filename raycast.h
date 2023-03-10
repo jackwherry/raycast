@@ -12,6 +12,18 @@
 #define SCREEN_WIDTH 384
 #define SCREEN_HEIGHT 256
 
+#define MAP_SIZE 8
+static uint8_t MAPDATA[MAP_SIZE * MAP_SIZE] = {
+	1, 1, 1, 1, 1, 1, 1, 1,
+	1, 0, 0, 0, 0, 0, 0, 1,
+	1, 0, 0, 0, 0, 3, 0, 1,
+	1, 0, 0, 0, 0, 0, 0, 1,
+	1, 0, 2, 0, 4, 4, 0, 1,
+	1, 0, 0, 0, 4, 0, 0, 1,
+	1, 0, 3, 0, 0, 0, 0, 1,
+	1, 1, 1, 1, 1, 1, 1, 1,
+};
+
 // TYPEDEFS
 typedef struct vect2_s {
 	float x, y;
@@ -26,7 +38,7 @@ typedef struct vect2i_s {
 void printSetupMessages(void);
 
 // dot product of float vectors
-vect2 dot(vect2 v0, vect2 v1);
+float dot(vect2 v0, vect2 v1);
 
 // length of a float vector
 float length(vect2 v);
@@ -38,5 +50,5 @@ vect2 normalize(vect2 v);
 int maxi(int a, int b);
 int mini(int a, int b);
 
-// sign of a signed inteer
-int sign(int i);
+// sign of a signed float
+float sign(float i);
