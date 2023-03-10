@@ -3,7 +3,10 @@
 // Global state object
 struct {
 	SDL_Window *window;
-	bool quit;
+	SDL_Renderer *renderer;
+	SDL_Texture *texture;
+	uint32_t pixels[SCREEN_WIDTH * SCREEN_HEIGHT];
+	bool quit; // set to 1 when it's time to quit
 } state;
 
 int main(int argc, char* argv[]) {
@@ -29,13 +32,26 @@ int main(int argc, char* argv[]) {
 			if (e.type == SDL_QUIT) {
 				state.quit = true;
 			}
-			if (e.type == SDL_KEYDOWN) {
-				state.quit = true;
-			}
-			if (e.type == SDL_MOUSEBUTTONDOWN) {
-				state.quit = true;
-			}
 		}
+
+		const uint8_t *keystate = SDL_GetKeyboardState(NULL);
+		if (keystate[SDL_SCANCODE_LEFT]) {
+
+		}
+
+		if (keystate[SDL_SCANCODE_RIGHT]) {
+
+		}
+
+		if (keystate[SDL_SCANCODE_UP]) {
+
+		}
+
+		if (keystate[SDL_SCANCODE_DOWN]) {
+
+		}
+
+		// do rendering here
 	}
 
 	SDL_Quit();

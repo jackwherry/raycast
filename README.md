@@ -1,6 +1,8 @@
 # Raycast
 Project goal: game (or at least game engine) that uses raycasting
 
+Inspired by https://www.youtube.com/watch?v=fSjc8vLMg8c
+
 ## Building and running
 ### macOS
 Install SDL2 by copying the most recent DMG from [here](https://github.com/libsdl-org/SDL/releases) to /Library/Frameworks.
