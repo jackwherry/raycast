@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
+#include <math.h>
 #include <SDL.h>
 
 // CONSTANTS
@@ -21,4 +22,21 @@ typedef struct vect2i_s {
 } vect2i;
 
 // FUNCTION SIGNATURES
+// print a welcome message
 void printSetupMessages(void);
+
+// dot product of float vectors
+vect2 dot(vect2 v0, vect2 v1);
+
+// length of a float vector
+float length(vect2 v);
+
+// normalize a float vector (make it a unit vector)
+vect2 normalize(vect2 v);
+
+// max and min of two ints (TODO: consider making this a macro or _Generic)
+int maxi(int a, int b);
+int mini(int a, int b);
+
+// sign of a signed inteer
+int sign(int i);
