@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
 	state.window = SDL_CreateWindow(PROJECT_NAME, SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
 		SCREEN_WIDTH*2 , SCREEN_HEIGHT*2,
-		0);
+		SDL_WINDOW_ALLOW_HIGHDPI);
 	assert(state.window);
 
 	SDL_Surface *window_surface = SDL_GetWindowSurface(state.window);
