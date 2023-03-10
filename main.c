@@ -15,8 +15,9 @@ struct {
 void vertline(int x, int yStart, int yEnd, uint32_t color) {
 	// set an entire vertical line of pixels to the given color
 	for (int y = yStart; y <= yEnd; y++) {
-		// force a crash before writing outside array bounds
 		int i = (y*SCREEN_WIDTH) + x;
+
+		// force a crash before writing outside array bounds
 		assert(i > 0 && i < SCREEN_WIDTH*SCREEN_HEIGHT);
 
 		state.pixels[i] = color;
