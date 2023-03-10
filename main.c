@@ -15,7 +15,11 @@ struct {
 void vertline(int x, int yStart, int yEnd, uint32_t color) {
 	// set an entire vertical line of pixels to the given color
 	for (int y = yStart; y <= yEnd; y++) {
-		state.pixels[(y * SCREEN_WIDTH) + x] = color;
+		// force a crash before writing outside array bounds
+		int i = (y*SCREEN_WIDTH) + x;
+		assert(i > 0 && i < SCREEN_WIDTH*SCREEN_HEIGHT);
+
+		state.pixels[i] = color;
 	}
 }
 
@@ -58,11 +62,11 @@ int main(int argc, char* argv[]) {
 
 		const uint8_t *keystate = SDL_GetKeyboardState(NULL);
 		if (keystate[SDL_SCANCODE_LEFT]) {
-
+			state.pos.y++;
 		}
 
 		if (keystate[SDL_SCANCODE_RIGHT]) {
-
+			state.pos.y--;
 		}
 
 		if (keystate[SDL_SCANCODE_UP]) {

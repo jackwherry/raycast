@@ -5,6 +5,7 @@ CC=clang
 CFLAGS = -I. -O2 -g -std=gnu17 -Wall -Wextra -Wfloat-equal -Wundef 
 CFLAGS += -Wshadow -Wpointer-arith -Wcast-align -Wstrict-prototypes
 CFLAGS += -Wwrite-strings -Waggregate-return -Wcast-qual $(CCINCLUDES)
+CFLAGS += -fsanitize=address
 
 # Outside includes (separate from LDFLAGS to avoid an unused flag warning)
 CCINCLUDES = -F/Library/Frameworks -I/Library/Frameworks/SDL2.framework/Headers
