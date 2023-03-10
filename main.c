@@ -1,16 +1,33 @@
 #include "raycast.h"
 
-// Global state object
+// global state object
 struct {
 	SDL_Window *window;
 	SDL_Renderer *renderer;
 	SDL_Texture *texture;
 	uint32_t pixels[SCREEN_WIDTH * SCREEN_HEIGHT];
+
+	vect2 pos, dir, plane;
+
 	bool quit; // set to 1 when it's time to quit
 } state;
 
+void vertline(int x, int yStart, int yEnd, uint32_t color) {
+	// set an entire vertical line of pixels to the given color
+	for (int y = yStart; y <= yEnd; y++) {
+		state.pixels[(y * SCREEN_WIDTH) + x] = color;
+	}
+}
+
+void render() {
+	// everything in raycasting is in terms of vertical lines, so we start by 
+	//	iterating across the width of the pixel array
+	for (int x = 0; x < SCREEN_WIDTH; x++) {
+			vertline(x, state.pos.y, state.pos.x, 0xFFFF20AA);
+	}
+}
+
 int main(int argc, char* argv[]) {
-	// Print debugging messages about the user's computer
 	printSetupMessages();
 
 	assert(SDL_Init(SDL_INIT_VIDEO) == 0);
@@ -21,13 +38,18 @@ int main(int argc, char* argv[]) {
 		SDL_WINDOW_ALLOW_HIGHDPI);
 	assert(state.window);
 
-	SDL_Surface *window_surface = SDL_GetWindowSurface(state.window);
-	assert(window_surface);
+	state.renderer = SDL_CreateRenderer(state.window, -1, SDL_RENDERER_PRESENTVSYNC);
+	assert(state.renderer);
 
-	SDL_UpdateWindowSurface(state.window);
+	state.texture = SDL_CreateTexture(state.renderer, SDL_PIXELFORMAT_ABGR8888, 
+		SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
+	assert(state.texture);
 
-	SDL_Event e;
+	state.pos = (vect2) { 2, 2 };
+
+	state.quit = false;
 	while (!state.quit) {
+		SDL_Event e;
 		while (SDL_PollEvent(&e)) {
 			if (e.type == SDL_QUIT) {
 				state.quit = true;
@@ -44,16 +66,27 @@ int main(int argc, char* argv[]) {
 		}
 
 		if (keystate[SDL_SCANCODE_UP]) {
-
+			state.pos.x++;
 		}
 
 		if (keystate[SDL_SCANCODE_DOWN]) {
-
+			state.pos.x--;
 		}
 
-		// do rendering here
+		// clear existing pixel array and render to it
+		memset(state.pixels, 0, sizeof(state.pixels));
+		render();
+
+		// copy the pixel array to the texture, then the renderer, then display everything
+		SDL_UpdateTexture(state.texture, NULL, state.pixels, SCREEN_WIDTH * 4);
+		SDL_RenderCopyEx(state.renderer, state.texture, 
+			NULL, NULL, 0.0, NULL, SDL_FLIP_VERTICAL);
+		SDL_RenderPresent(state.renderer);
 	}
 
+	SDL_DestroyTexture(state.texture);
+	SDL_DestroyRenderer(state.renderer);
+	SDL_DestroyWindow(state.window);
 	SDL_Quit();
 	return 0;
 }
