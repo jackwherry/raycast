@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "raycast.h"
 
 void printSetupMessages() {

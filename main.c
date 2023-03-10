@@ -1,32 +1,19 @@
-#include <stdbool.h>
-#include <SDL.h>
 #include "raycast.h"
 
-int main() {
+int main(int argc, char* argv[]) {
 	// Print debugging messages about the user's computer
 	printSetupMessages();
 
-	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-		printf("SDL_Init Error: %s", SDL_GetError());
-		return 1;
-	}
+	assert(SDL_Init(SDL_INIT_VIDEO) == 0);
 
 	SDL_Window *window = SDL_CreateWindow(PROJECT_NAME, SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
 		680, 480,
 		0);
-
-	if (!window) {
-		printf("Failed to create window\n");
-		return 1;
-	}
+	assert(window);
 
 	SDL_Surface *window_surface = SDL_GetWindowSurface(window);
-
-	if (!window_surface) {
-		printf("Failed to create window surface\n");
-		return 1;
-	}
+	assert(window_surface);
 
 	SDL_UpdateWindowSurface(window);
 
