@@ -39,7 +39,7 @@ void render(void) {
 
 		vect2 pos = state.pos;
 		vect2i ipos = {
-			(int) state.pos.x, (int) state.pos.x
+			(int) state.pos.x, (int) state.pos.y
 		};
 
 		// distance ray must travel from one x/y side to the next
