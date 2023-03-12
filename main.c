@@ -483,7 +483,7 @@ void render(void) {
 				nycd = nyc1 - nyc0;
 
 			for (int x = x0; x <= x1; x++) {
-				int shade = (x == x0 || x == x1) ? 192 : (255 - wallshade); // mark edges differently
+				int shade = 255 - wallshade;
 
 				// calculate progress along x axis via tx{0,1} so that walls
 				//	which are partially cut off due to portal edges still have proper heights
@@ -540,7 +540,7 @@ void render(void) {
 
 int main(int argc, char* argv[]) {
 	printf("Starting " PROJECT_NAME "... \n");
-	
+
 	state.pixels = malloc(SCREEN_WIDTH * SCREEN_HEIGHT * 4);
 
 	assert(SDL_Init(SDL_INIT_VIDEO) == 0);
