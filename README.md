@@ -25,13 +25,15 @@ The Makefile might work with MinGW similarly to how it does on Linux. You could 
 - Texturing
 - Better lighting
 - Level editing
+	- Nuklear immediate-mode GUI library
 - More assertions/robustness improvements
 	- ✅ add error when the number of walls doesn't make sense with respect to the info in the segments section
 	- ✅ make sure that the total number of walls and sectors don't exceed the size of the arrays
 		- or switch to a custom arraylist implementation here instead
 	- ✅ cross platform support
 - Changing EYE_Z based on floor height
-- Sprites
+- Billboard sprites
+- Wall decals
 - Mobs
 - HUD
-	- x/y coords displayed on screen
+	- x/y coords displayed on screen (or integrate in level editor)

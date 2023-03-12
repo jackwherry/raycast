@@ -19,6 +19,9 @@
 #define SECTOR_NONE 0
 #define SECTOR_MAX 128
 
+#define NUMSECTORS_MAX 32
+#define NUMWALLS_MAX 128
+
 #define DEG2RAD(_d) ((_d) * (PI / 180.0f))
 #define RAD2DEG(_d) ((_d) * (180.0f / PI))
 
@@ -58,9 +61,6 @@ struct wall {
 	int portal; // 0 for not a portal, otherwise the sector it's a portal to
 };
 
-#define NUMSECTORS_MAX 32
-#define NUMWALLS_MAX 128
-
 // global state object
 struct {
 	SDL_Window *window;
@@ -84,10 +84,6 @@ struct {
 
 	bool quit; // set to 1 when it's time to quit
 } state;
-
-void printSetupMessages(void) {
-	printf("Starting " PROJECT_NAME "... \n");
-}
 
 vect2i vect2ToVect2i(vect2 v) {
 	return (vect2i) { v.x, v.y };
@@ -543,8 +539,8 @@ void render(void) {
 }
 
 int main(int argc, char* argv[]) {
-	printSetupMessages();
-
+	printf("Starting " PROJECT_NAME "... \n");
+	
 	state.pixels = malloc(SCREEN_WIDTH * SCREEN_HEIGHT * 4);
 
 	assert(SDL_Init(SDL_INIT_VIDEO) == 0);
@@ -616,7 +612,7 @@ int main(int argc, char* argv[]) {
 		// update player's sector
 		{
 			// BFS neighbors in a circular queue because player is likely to be in a neighboring sector
-			enum { QUEUE_MAX = 64 };
+			enum { QUEUE_MAX = NUMSECTORS_MAX * 2};
 			int queue[QUEUE_MAX] = { state.camera.sector };
 			int i = 0, n = 1, found = SECTOR_NONE;
 
