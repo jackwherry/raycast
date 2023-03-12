@@ -65,11 +65,11 @@ struct wall {
 struct {
 	SDL_Window *window;
 	SDL_Renderer *renderer;
-	SDL_Texture *texture; // TODO: debug?
+	SDL_Texture *texture;
 	uint32_t *pixels;
 
 	struct {
-		struct sector arr[NUMSECTORS_MAX]; size_t n; // TODO: check for these maxes
+		struct sector arr[NUMSECTORS_MAX]; size_t n;
 	} sectors;
 
 	struct {
@@ -83,7 +83,6 @@ struct {
 	} camera;
 
 	bool quit; // set to 1 when it's time to quit
-	// TODO: what does sleepy do?
 } state;
 
 void printSetupMessages(void) {
@@ -418,7 +417,6 @@ void render(void) {
 				ap1 = normalizeAngle(atan2(cp1.y, cp1.x) - PI_2);
 
 			// clip against view frustum if both angles are not clearly within HFOV
-			// TODO: figure out what "clearly" means here
 			if (cp0.y < ZNEAR 
 				|| cp1.y < ZNEAR 
 				|| ap0 >  (HFOV / 2)
