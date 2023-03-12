@@ -19,3 +19,14 @@ Modify the Makefile to use the correct compiler and linker flags. Put it behind 
 
 ### Windows
 The Makefile might work with MinGW or something similarly to how it does on Linux. You could also just ignore it and use the Visual Studio build system instead. 
+
+## Possible TODOs
+- Collision handling
+- Texturing
+- Better lighting
+- Level editing
+- More assertions/robustness improvements
+- Changing EYE_Z based on floor height
+- Sprites
+- Mobs
+- HUD

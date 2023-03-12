@@ -15,10 +15,10 @@ CCINCLUDES = -F/Library/Frameworks -I/Library/Frameworks/SDL2.framework/Headers
 LDFLAGS = -framework SDL2 -F/Library/Frameworks -I/Library/Frameworks/SDL2.framework/Headers
 
 # .h files written by me go here
-INCLUDES = raycast.h
+INCLUDES =
 
 # .o files go here
-OBJ = main.o util.o
+OBJ = main.o
 
 # Generate all the .o files
 %.o: %.c $(INCLUDES)
