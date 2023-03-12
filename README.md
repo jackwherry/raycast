@@ -26,7 +26,12 @@ The Makefile might work with MinGW or something similarly to how it does on Linu
 - Better lighting
 - Level editing
 - More assertions/robustness improvements
+	- ✅ add error when the number of walls doesn't make sense with respect to the info in the segments section
+	- ✅ make sure that the total number of walls and sectors don't exceed the size of the arrays
+		- or switch to a custom arraylist implementation here instead
+	- ✅ cross platform support
 - Changing EYE_Z based on floor height
 - Sprites
 - Mobs
 - HUD
+	- x/y coords displayed on screen

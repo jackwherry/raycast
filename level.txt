@@ -1,3 +1,13 @@
+# [SECTOR]
+# id	index	num walls	floor	ceiling
+# 1 	0		8			0.0		5.0
+#
+# [WALL]
+# # SECTOR 0, 0..7
+# x0	y0	x1	y1	portal?
+# 4   	1	 2	 1	0
+# etc.
+
 [SECTOR]
 1 0 8 0.0 5.0
 2 8 3 1.0 4.0

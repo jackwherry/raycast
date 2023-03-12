@@ -58,6 +58,9 @@ struct wall {
 	int portal; // 0 for not a portal, otherwise the sector it's a portal to
 };
 
+#define NUMSECTORS_MAX 32
+#define NUMWALLS_MAX 128
+
 // global state object
 struct {
 	SDL_Window *window;
@@ -66,11 +69,11 @@ struct {
 	uint32_t *pixels;
 
 	struct {
-		struct sector arr[32]; size_t n; // TODO: check for these maxes
+		struct sector arr[NUMSECTORS_MAX]; size_t n; // TODO: check for these maxes
 	} sectors;
 
 	struct {
-		struct wall arr[128]; size_t n; 
+		struct wall arr[NUMWALLS_MAX]; size_t n;
 	} walls;
 
 	struct {
@@ -210,7 +213,7 @@ int loadSectors(const char *path) {
 	/*
 	[SECTOR]
 	id	index	num walls	floor	ceiling
-	0	0		8			0.0		5.0
+	1	0		8			0.0		5.0
 
 	[WALL]
 	# SECTOR 0, 0..7
@@ -222,22 +225,42 @@ int loadSectors(const char *path) {
 
 	state.sectors.n = 1; // there's no sector 0
 
+	int totalExpectedWalls = 0;
+	int totalWalls = 0;
+
 	FILE *f = fopen(path, "r");
 	if (!f) return -1; // file not found (or couldn't be opened)
 
 	int retval = 0;
 	enum { SCAN_SECTOR, SCAN_WALL, SCAN_NONE } ss = SCAN_NONE;
 
-	char line[1024], buf[64]; // TODO check for overflows
+	enum { LINE_BUFFER_SIZE = 1024 };
+	enum { BRACKET_BUFFER_SIZE = 64 };
+
+	char line[LINE_BUFFER_SIZE], buf[BRACKET_BUFFER_SIZE]; 
 	while (fgets(line, sizeof(line), f)) {
 		char *p = line;
-		while (isspace(*p)) { p++; } // fast-forward past spaces
+		int i = 0;
+		// fast-forward past spaces
+		while (isspace(*p)) {
+			if (i >= LINE_BUFFER_SIZE - 1) {
+				retval = -7; // prevent buffer overflow
+				goto done;
+			}
+			p++;
+			i++;
+		}
 
 		if (!*p || *p == '#') {
 			continue; // ignore blank lines and comments
 		} else if (*p == '[') {
 			strncpy(buf, p + 1, sizeof(buf));
-			const char *section = strtok(buf, "]");
+
+			// ensure that there is a null terminator since strncpy does NOT add one for us
+			//	if there were 64 characters after the opening square bracket
+			buf[BRACKET_BUFFER_SIZE - 1] = '\0';
+
+			const char *section = strtok(buf, "]"); // note: buf is tainted from now on
 			if (!section) { retval = -2; goto done; }
 
 			if (!strcmp(section, "SECTOR")) { ss = SCAN_SECTOR; }
@@ -246,6 +269,11 @@ int loadSectors(const char *path) {
 		} else {
 			switch (ss) {
 			case SCAN_WALL: {
+				if (state.walls.n >= NUMWALLS_MAX - 1) {
+					retval = -8;
+					goto done;
+				}
+
 				struct wall *wall = &state.walls.arr[state.walls.n++];
 				if (sscanf(
 					p, "%d %d %d %d %d", 
@@ -254,8 +282,14 @@ int loadSectors(const char *path) {
 					&wall->portal) != 5) {
 					retval = -4; goto done;
 				}
+				totalWalls++;
 			}; break;
 			case SCAN_SECTOR: {
+				if (state.sectors.n >= NUMSECTORS_MAX - 1) {
+					retval = -9;
+					goto done;
+				}
+
 				struct sector *sector = &state.sectors.arr[state.sectors.n++];
 				if (sscanf(
 					p, "%d %zu %zu %f %f", 
@@ -264,6 +298,7 @@ int loadSectors(const char *path) {
 					&sector->zceil) != 5) {
 					retval = -5; goto done;
 				}
+				totalExpectedWalls += sector->numwalls;
 			}; break;
 			default: retval = -6; goto done;
 			}
@@ -272,6 +307,10 @@ int loadSectors(const char *path) {
 	}
 
 	if (ferror(f)) { retval = -128; goto done; }
+
+	if (totalWalls != totalExpectedWalls) {
+		retval = -10; goto done;
+	}
 
 done:
 	fclose(f);
@@ -291,8 +330,22 @@ void vertline(int x, int yStart, int yEnd, uint32_t color) {
 }
 
 void present(void) {
-	// copy the pixel array to the texture, then the renderer, then display everything
-	SDL_UpdateTexture(state.texture, NULL, state.pixels, SCREEN_WIDTH * 4);
+	void *px;
+	int pitch;
+
+	SDL_LockTexture(state.texture, NULL, &px, &pitch); // replace UpdateTexture
+	{
+		for (size_t y = 0; y < SCREEN_HEIGHT; y++) {
+			memcpy(&((uint8_t*) px)[y * pitch], &state.pixels[y * SCREEN_WIDTH], SCREEN_WIDTH * 4);
+		}
+	}
+	SDL_UnlockTexture(state.texture);
+
+	SDL_SetRenderTarget(state.renderer, NULL);
+	SDL_SetRenderDrawColor(state.renderer, 0, 0, 0, 0xFF);
+	SDL_SetRenderDrawBlendMode(state.renderer, SDL_BLENDMODE_NONE);
+	SDL_RenderClear(state.renderer);
+
 	SDL_RenderCopyEx(state.renderer, state.texture, 
 		NULL, NULL, 0.0, NULL, SDL_FLIP_VERTICAL);
 	SDL_RenderPresent(state.renderer);
@@ -526,8 +579,7 @@ int main(int argc, char* argv[]) {
 		goto exit;
 	}
 
-	fprintf(stderr, "Loaded %zu sectors with %zu walls\n", state.sectors.n, state.walls.n);
-
+	fprintf(stderr, "Loaded %zu sectors with %zu walls\n", state.sectors.n - 1, state.walls.n);
 
 	state.quit = false;
 	while (!state.quit) {
