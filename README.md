@@ -15,10 +15,10 @@ $ ./raycast
 You may be able to use the Xcode build system if you'd prefer.
 
 ### Linux
-Modify the Makefile to use the correct compiler and linker flags. Put it behind an `ifeq` and submit a pull request if you're so inclined :)
+Install SDL2 with your distribution's package manager (or from source) and run `make`. You may need to modify the include or link flags.
 
 ### Windows
-The Makefile might work with MinGW or something similarly to how it does on Linux. You could also just ignore it and use the Visual Studio build system instead. 
+The Makefile might work with MinGW similarly to how it does on Linux. You could also just ignore it and use the Visual Studio build system instead.
 
 ## Possible TODOs
 - Collision handling
