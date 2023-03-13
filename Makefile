@@ -31,7 +31,7 @@ ifeq ($(UNAME_S), Linux)
 endif
 
 # .h files go here
-INCLUDES = nuklear.h nuklear_sdl_renderer.h
+INCLUDES = nuklear.h nuklear_sdl_renderer.h config.h
 
 # .o files go here
 OBJ = main.o

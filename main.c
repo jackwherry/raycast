@@ -6,17 +6,21 @@
 #include <math.h>
 #include <SDL.h>
 
-#define NK_INCLUDE_FIXED_TYPES
-#define NK_INCLUDE_STANDARD_IO
-#define NK_INCLUDE_STANDARD_VARARGS
-#define NK_INCLUDE_DEFAULT_ALLOCATOR
-#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
-#define NK_INCLUDE_FONT_BAKING
-#define NK_INCLUDE_DEFAULT_FONT
-#define NK_IMPLEMENTATION
-#define NK_SDL_RENDERER_IMPLEMENTATION
-#include "nuklear.h"
-#include "nuklear_sdl_renderer.h"
+#include "config.h"
+
+#ifdef RAYCAST_DEBUG
+	#define NK_INCLUDE_FIXED_TYPES
+	#define NK_INCLUDE_STANDARD_IO
+	#define NK_INCLUDE_STANDARD_VARARGS
+	#define NK_INCLUDE_DEFAULT_ALLOCATOR
+	#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+	#define NK_INCLUDE_FONT_BAKING
+	#define NK_INCLUDE_DEFAULT_FONT
+	#define NK_IMPLEMENTATION
+	#define NK_SDL_RENDERER_IMPLEMENTATION
+	#include "nuklear.h"
+	#include "nuklear_sdl_renderer.h"
+#endif
 
 #define PROJECT_NAME "Raycast"
 #define SCREEN_WIDTH 384
@@ -79,7 +83,9 @@ struct {
 	SDL_Texture *texture;
 	uint32_t *pixels;
 
+#ifdef RAYCAST_DEBUG
 	struct nk_context *ctx;
+#endif	
 
 	struct {
 		struct sector arr[NUMSECTORS_MAX]; size_t n;
@@ -359,7 +365,9 @@ void present(void) {
 
 	SDL_RenderCopyEx(state.renderer, state.texture, 
 		NULL, NULL, 0.0, NULL, SDL_FLIP_VERTICAL);
+#ifdef RAYCAST_DEBUG
 	nk_sdl_render(NK_ANTI_ALIASING_ON);
+#endif
 	SDL_RenderPresent(state.renderer);
 }
 
@@ -555,6 +563,7 @@ void render(void) {
 	}
 }
 
+#ifdef RAYCAST_DEBUG
 void renderGUI(void) {
 	// Render GUI
 	if (nk_begin(state.ctx, "Debug", nk_rect(50, 50, 230, 250),
@@ -577,6 +586,7 @@ void renderGUI(void) {
 	}
 	nk_end(state.ctx); 
 }
+#endif
 
 int main(int argc, char* argv[]) {
 	printf("Starting " PROJECT_NAME "... \n");
@@ -618,6 +628,7 @@ int main(int argc, char* argv[]) {
 
 	fprintf(stderr, "Loaded %zu sectors with %zu walls\n", state.sectors.n - 1, state.walls.n);
 
+#ifdef RAYCAST_DEBUG
 	// set up GUI
 	state.ctx = nk_sdl_init(state.window, state.renderer);
 	float font_scale = 1;
@@ -645,20 +656,27 @@ int main(int argc, char* argv[]) {
 
 	font->handle.height /= font_scale;
 	nk_style_set_font(state.ctx, &font->handle);
+#endif
 
 	state.quit = false;
 	while (!state.quit) {
 		SDL_Event e;
+#ifdef RAYCAST_DEBUG
 		nk_input_begin(state.ctx);
+#endif
 		while (SDL_PollEvent(&e)) {
 			if (e.type == SDL_QUIT) {
 				state.quit = true;
 			}
+#ifdef RAYCAST_DEBUG
 			nk_sdl_handle_event(&e);
+#endif
 		}
+#ifdef RAYCAST_DEBUG
 		nk_input_end(state.ctx);
-
 		renderGUI();
+#endif
+
 
 		const float rotspeed = 3.0f * 0.016f;
 		const float movespeed = 3.0f * 0.016f;
