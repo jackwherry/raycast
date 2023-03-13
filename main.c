@@ -6,6 +6,17 @@
 #include <math.h>
 #include <SDL.h>
 
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_STANDARD_VARARGS
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
+#define NK_IMPLEMENTATION
+#define NK_SDL_RENDERER_IMPLEMENTATION
+#include "nuklear.h"
+#include "nuklear_sdl_renderer.h"
 
 #define PROJECT_NAME "Raycast"
 #define SCREEN_WIDTH 384
@@ -67,6 +78,8 @@ struct {
 	SDL_Renderer *renderer;
 	SDL_Texture *texture;
 	uint32_t *pixels;
+
+	struct nk_context *ctx;
 
 	struct {
 		struct sector arr[NUMSECTORS_MAX]; size_t n;
@@ -340,11 +353,12 @@ void present(void) {
 
 	SDL_SetRenderTarget(state.renderer, NULL);
 	SDL_SetRenderDrawColor(state.renderer, 0, 0, 0, 0xFF);
-	SDL_SetRenderDrawBlendMode(state.renderer, SDL_BLENDMODE_NONE);
+	SDL_SetRenderDrawBlendMode(state.renderer, SDL_BLENDMODE_BLEND);
 	SDL_RenderClear(state.renderer);
 
 	SDL_RenderCopyEx(state.renderer, state.texture, 
 		NULL, NULL, 0.0, NULL, SDL_FLIP_VERTICAL);
+	nk_sdl_render(NK_ANTI_ALIASING_ON);
 	SDL_RenderPresent(state.renderer);
 }
 
@@ -540,6 +554,29 @@ void render(void) {
 	}
 }
 
+void renderGUI(void) {
+	// Render GUI
+	if (nk_begin(state.ctx, "Debug", nk_rect(50, 50, 230, 250),
+		NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|
+		NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE))
+	{
+		char coords[128];
+		char sector[64];
+		char facing[128];
+
+		snprintf(coords, 128, "X, Y: %f, %f", state.camera.pos.x, state.camera.pos.y);
+		snprintf(sector, 64, "Sector: %d", state.camera.sector);
+		snprintf(facing, 128, "Facing: %f (%f) ", 
+			state.camera.angle, normalizeAngle(state.camera.angle));
+
+		nk_layout_row_dynamic(state.ctx, 20, 1);
+		nk_label(state.ctx, coords, NK_TEXT_LEFT);
+		nk_label(state.ctx, sector, NK_TEXT_LEFT);
+		nk_label(state.ctx, facing, NK_TEXT_LEFT);
+	}
+	nk_end(state.ctx); 
+}
+
 int main(int argc, char* argv[]) {
 	printf("Starting " PROJECT_NAME "... \n");
 
@@ -579,14 +616,47 @@ int main(int argc, char* argv[]) {
 
 	fprintf(stderr, "Loaded %zu sectors with %zu walls\n", state.sectors.n - 1, state.walls.n);
 
+	// set up GUI
+	state.ctx = nk_sdl_init(state.window, state.renderer);
+	float font_scale = 1;
+
+	struct nk_font_atlas *atlas;
+	struct nk_font_config config = nk_font_config(0);
+	struct nk_font *font;
+
+	/* scale the renderer output for High-DPI displays */
+	{
+		int render_w, render_h;
+		int window_w, window_h;
+		float scale_x, scale_y;
+		SDL_GetRendererOutputSize(state.renderer, &render_w, &render_h);
+		SDL_GetWindowSize(state.window, &window_w, &window_h);
+		scale_x = (float)(render_w) / (float)(window_w);
+		scale_y = (float)(render_h) / (float)(window_h);
+		SDL_RenderSetScale(state.renderer, scale_x, scale_y);
+		font_scale = scale_y;
+	}
+
+	nk_sdl_font_stash_begin(&atlas);
+	font = nk_font_atlas_add_default(atlas, 13 * font_scale, &config); 
+	nk_sdl_font_stash_end();
+
+	font->handle.height /= font_scale;
+	nk_style_set_font(state.ctx, &font->handle);
+
 	state.quit = false;
 	while (!state.quit) {
 		SDL_Event e;
+		nk_input_begin(state.ctx);
 		while (SDL_PollEvent(&e)) {
 			if (e.type == SDL_QUIT) {
 				state.quit = true;
 			}
+			nk_sdl_handle_event(&e);
 		}
+		nk_input_end(state.ctx);
+
+		renderGUI();
 
 		const float rotspeed = 3.0f * 0.016f;
 		const float movespeed = 3.0f * 0.016f;

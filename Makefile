@@ -30,8 +30,8 @@ ifeq ($(UNAME_S), Linux)
 	LDFLAGS = -lSDL2
 endif
 
-# .h files written by me go here
-INCLUDES =
+# .h files go here
+INCLUDES = nuklear.h nuklear_sdl_renderer.h
 
 # .o files go here
 OBJ = main.o
