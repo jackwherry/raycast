@@ -665,22 +665,7 @@ done:
 			state.camera.pos = newPosition;
 		}
 
-		vect2 viewAngleFar = { state.camera.anglecos * ZFAR, state.camera.anglesin * ZFAR };
-
-		vect2 positionBeforeWorldExit;
-
-		struct sector *sector = &state.sectors.arr[state.camera.sector];
-		for (size_t i = 0; i < sector->numwalls; i++) {
-			struct wall *wall = &state.walls.arr[sector->firstwall + i];
-			if (wall->portal) { continue; } // we ignore collisions with portals
-			vect2 collision = intersectSegs(vect2iToVect2(wall->a), vect2iToVect2(wall->b),
-				state.camera.pos, viewAngleFar);
-			if (isnan(collision.x) || isnan(collision.y)) { continue; } // not facing this wall
-
-			positionBeforeWorldExit = state.camera.pos;
-		}
-
-		state.positionBeforeWorldExit = positionBeforeWorldExit;
+		state.positionBeforeWorldExit = state.camera.pos;
 
 		// clear existing pixel array and render to it
 		memset(state.pixels, 0, SCREEN_WIDTH * SCREEN_HEIGHT * 4);
