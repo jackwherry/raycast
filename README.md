@@ -21,11 +21,14 @@ Install SDL2 with your distribution's package manager (or from source) and run `
 The Makefile might work with MinGW similarly to how it does on Linux. You could also just ignore it and use the Visual Studio build system instead.
 
 ## Possible TODOs
-- Collision handling
+- 🌓 Collision handling
+	- ✅ Basic wall-player collisions
+	- Arbitrary collisions
 - Texturing
 - Better lighting
 - Level editing
-	- Nuklear immediate-mode GUI library
+	- ✅ Nuklear immediate-mode GUI library
+	- ✅ x/y coords displayed on screen (or integrate in level editor)
 - More assertions/robustness improvements
 	- ✅ add error when the number of walls doesn't make sense with respect to the info in the segments section
 	- ✅ make sure that the total number of walls and sectors don't exceed the size of the arrays
@@ -36,4 +39,3 @@ The Makefile might work with MinGW similarly to how it does on Linux. You could 
 - Wall decals
 - Mobs
 - HUD
-	- x/y coords displayed on screen (or integrate in level editor)
