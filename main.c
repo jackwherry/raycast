@@ -85,6 +85,7 @@ struct {
 
 #ifdef RAYCAST_DEBUG
 	struct nk_context *ctx;
+	bool editorOpen;
 #endif	
 
 	struct {
@@ -565,26 +566,81 @@ void render(void) {
 
 #ifdef RAYCAST_DEBUG
 void renderGUI(void) {
-	// Render GUI
-	if (nk_begin(state.ctx, "Debug", nk_rect(50, 50, 230, 250),
-		NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|
-		NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE))
-	{
+	nk_flags window_flags = NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|
+		NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE;
+
+	// main debug window
+	if (nk_begin(state.ctx, "debug", nk_rect(50, 50, 230, 250), window_flags)) {
+		// general info about player position
 		char coords[128];
 		char sector[64];
 		char facing[128];
 
-		snprintf(coords, 128, "X, Y: %f, %f", state.camera.pos.x, state.camera.pos.y);
-		snprintf(sector, 64, "Sector: %d", state.camera.sector);
-		snprintf(facing, 128, "Facing: %f (%f) ", 
+		snprintf(coords, 128, "x, y: %f, %f", state.camera.pos.x, state.camera.pos.y);
+		snprintf(sector, 64, "sector: %d", state.camera.sector);
+		snprintf(facing, 128, "facing: %f (%f) ", 
 			state.camera.angle, normalizeAngle(state.camera.angle));
 
 		nk_layout_row_dynamic(state.ctx, 20, 1);
 		nk_label(state.ctx, coords, NK_TEXT_LEFT);
 		nk_label(state.ctx, sector, NK_TEXT_LEFT);
 		nk_label(state.ctx, facing, NK_TEXT_LEFT);
+
+		// buttons
+		if (nk_button_label(state.ctx, "toggle map editor")) {
+			state.editorOpen = !state.editorOpen;
+		}
 	}
 	nk_end(state.ctx); 
+
+	// map editor window
+	if (state.editorOpen) {
+		if (nk_begin(state.ctx, "map editor", nk_rect(330, 300, 300, 300), window_flags)) {
+			// display the number of sectors and walls added
+			char sectors[64];
+			char walls[64];
+
+			// sectors start at 1, walls start at 0
+			snprintf(sectors, 64, "sectors: %zu/%d", state.sectors.n - 1, NUMSECTORS_MAX);
+			snprintf(walls, 64, "walls: %zu/%d", state.walls.n, NUMWALLS_MAX);
+
+			nk_layout_row_dynamic(state.ctx, 20, 2); // put both labels on the same line
+			nk_label(state.ctx, sectors, NK_TEXT_CENTERED);
+			nk_label(state.ctx, walls, NK_TEXT_CENTERED);
+
+			for (size_t i = 0; i < state.sectors.n - 1; i++) {
+				char sectorName[64];
+				snprintf(sectorName, 64, "sector %zu", i + 1);
+
+				struct sector *sector = &state.sectors.arr[i + 1];
+				nk_layout_row_dynamic(state.ctx, 20, 1);
+				if (nk_tree_push(state.ctx, NK_TREE_TAB, sectorName, NK_MAXIMIZED)) {
+					nk_layout_row_dynamic(state.ctx, 20, 2);
+					nk_property_float(state.ctx, "zfloor", 0.0f, &sector->zfloor, EYE_Z, 0.1f, 0.1f);
+					nk_property_float(state.ctx, "zceil", EYE_Z, &sector->zceil, ZFAR, 0.1f, 0.1f);
+
+					for (size_t j = 0; j < sector->numwalls; j++) {
+						char wallName[64];
+						snprintf(wallName, 64, "wall %zu", sector->firstwall + j);
+
+						struct wall *wall = &state.walls.arr[sector->firstwall + j];
+
+						nk_layout_row_dynamic(state.ctx, 20, 1);
+						nk_label(state.ctx, wallName, NK_TEXT_LEFT);
+						nk_layout_row_dynamic(state.ctx, 20, 2);
+						nk_property_int(state.ctx, "a.x", 0, &wall->a.x, (int) ZFAR, 1, 1);
+						nk_property_int(state.ctx, "a.y", 0, &wall->a.y, (int) ZFAR, 1, 1);
+						nk_property_int(state.ctx, "b.x", 0, &wall->b.x, (int) ZFAR, 1, 1);
+						nk_property_int(state.ctx, "b.y", 0, &wall->b.y, (int) ZFAR, 1, 1);
+						nk_property_int(state.ctx, "portal to", 0,
+							&wall->portal, state.sectors.n - 1, 1, 1);
+					}
+					nk_tree_pop(state.ctx);
+				}
+			}
+		}
+		nk_end(state.ctx);
+	}
 }
 #endif
 
@@ -656,6 +712,8 @@ int main(int argc, char* argv[]) {
 
 	font->handle.height /= font_scale;
 	nk_style_set_font(state.ctx, &font->handle);
+
+	state.editorOpen = false;
 #endif
 
 	state.quit = false;
