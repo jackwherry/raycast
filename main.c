@@ -96,6 +96,7 @@ struct {
 	} camera;
 
 	vect2 positionBeforeWorldExit; // the player's final position before exiting the world
+	int sectorBeforeWorldExit;
 
 	bool quit; // set to 1 when it's time to quit
 } state;
@@ -602,6 +603,7 @@ int main(int argc, char* argv[]) {
 	state.camera.sector = 0;
 
 	state.positionBeforeWorldExit = state.camera.pos;
+	state.sectorBeforeWorldExit = 1;
 
 	if (argc == 2) {
 		int status = loadSectors(argv[1]);
@@ -722,7 +724,6 @@ int main(int argc, char* argv[]) {
 done:
 			if (!found) {
 				fprintf(stderr, "player is not in a sector\n");
-				state.camera.sector = 1;
 				outsideWorld = true;
 			} else {
 				state.camera.sector = found;
@@ -733,9 +734,11 @@ done:
 		if (outsideWorld) {
 			vect2 newPosition = { state.positionBeforeWorldExit.x, state.positionBeforeWorldExit.y };
 			state.camera.pos = newPosition;
+			state.camera.sector = state.sectorBeforeWorldExit;
 		}
 
 		state.positionBeforeWorldExit = state.camera.pos;
+		state.sectorBeforeWorldExit = state.camera.sector;
 
 		// clear existing pixel array and render to it
 		memset(state.pixels, 0, SCREEN_WIDTH * SCREEN_HEIGHT * 4);
