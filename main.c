@@ -82,6 +82,8 @@ struct {
 		int sector;
 	} camera;
 
+	vect2 positionBeforeWorldExit; // the player's final position before exiting the world
+
 	bool quit; // set to 1 when it's time to quit
 } state;
 
@@ -558,9 +560,11 @@ int main(int argc, char* argv[]) {
 		SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 	assert(state.texture);
 
-	state.camera.pos = (vect2) { 3, 3 };
+	state.camera.pos = (vect2) { 2, 2 };
 	state.camera.angle = 0.0;
 	state.camera.sector = 0;
+
+	state.positionBeforeWorldExit = state.camera.pos;
 
 	if (argc == 2) {
 		int status = loadSectors(argv[1]);
@@ -609,6 +613,8 @@ int main(int argc, char* argv[]) {
 			state.camera.pos.y -= movespeed * state.camera.anglesin;
 		}
 
+		bool outsideWorld = false;
+
 		// update player's sector
 		{
 			// BFS neighbors in a circular queue because player is likely to be in a neighboring sector
@@ -647,10 +653,34 @@ done:
 			if (!found) {
 				fprintf(stderr, "player is not in a sector\n");
 				state.camera.sector = 1;
+				outsideWorld = true;
 			} else {
 				state.camera.sector = found;
 			}
 		}
+
+		// check for collisions and update the camera pos accordingly
+		if (outsideWorld) {
+			vect2 newPosition = { state.positionBeforeWorldExit.x, state.positionBeforeWorldExit.y };
+			state.camera.pos = newPosition;
+		}
+
+		vect2 viewAngleFar = { state.camera.anglecos * ZFAR, state.camera.anglesin * ZFAR };
+
+		vect2 positionBeforeWorldExit;
+
+		struct sector *sector = &state.sectors.arr[state.camera.sector];
+		for (size_t i = 0; i < sector->numwalls; i++) {
+			struct wall *wall = &state.walls.arr[sector->firstwall + i];
+			if (wall->portal) { continue; } // we ignore collisions with portals
+			vect2 collision = intersectSegs(vect2iToVect2(wall->a), vect2iToVect2(wall->b),
+				state.camera.pos, viewAngleFar);
+			if (isnan(collision.x) || isnan(collision.y)) { continue; } // not facing this wall
+
+			positionBeforeWorldExit = state.camera.pos;
+		}
+
+		state.positionBeforeWorldExit = positionBeforeWorldExit;
 
 		// clear existing pixel array and render to it
 		memset(state.pixels, 0, SCREEN_WIDTH * SCREEN_HEIGHT * 4);
