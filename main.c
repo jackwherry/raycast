@@ -85,7 +85,11 @@ struct {
 
 #ifdef RAYCAST_DEBUG
 	struct nk_context *ctx;
-	bool editorOpen;
+	nk_bool editorOpen;
+	nk_bool loadSaveOpen;
+	nk_bool displayErrors;
+	char editorFilepath[64];
+	int filepathLength;
 #endif	
 
 	struct {
@@ -334,6 +338,85 @@ done:
 	fclose(f);
 	return retval;
 }
+
+int saveSectors(const char *path) {
+	return -128;
+} // TODO implement this
+
+void newWall(struct sector *sector) {
+	if (state.walls.n < NUMWALLS_MAX) {
+		if (sector->firstwall + sector->numwalls != state.walls.n) {
+			// if this isn't the last sector, we need to shift all the other walls to
+			//	make room for this one
+			size_t nextSectorIndex = 0;
+			for (size_t i = 0; i < state.sectors.n; i++) { // TODO check for overflow here
+				if (sector->firstwall == state.sectors.arr[i + 1].firstwall) {
+					nextSectorIndex = i + 1;
+					break;
+				}
+			}
+			size_t nextWallIndex = sector->firstwall + sector->numwalls;
+			for (size_t i = state.walls.n - 1; i > nextWallIndex - 1; i--) {
+				state.walls.arr[i] = state.walls.arr[i - 1];
+			}
+			for (size_t i = nextSectorIndex; i < state.sectors.n; i++) {
+				state.sectors.arr[i + 1].firstwall++;
+			}
+			struct wall *wall = &state.walls.arr[sector->numwalls];
+			wall->a.x = 0; wall->b.x = 0; wall->a.y = 0; wall->b.y = 0; wall->portal = 0;
+			sector->numwalls++;
+			state.walls.n++;
+		} else {
+			struct wall *wall = &state.walls.arr[state.walls.n++];
+			wall->a.x = 0; wall->b.x = 0; wall->a.y = 0; wall->b.y = 0; wall->portal = 0;
+			sector->numwalls++;
+		}
+	} else {
+		// TODO: communicate that the max has been reached
+	}
+}
+
+void deleteWall(struct sector *sector, int index) {
+	if (sector->firstwall + sector->numwalls != state.walls.n) {
+		// if this isn't the last sector, we need to shift all the other walls to 
+		//	clean up gaps
+		size_t nextSectorIndex = 0; // next sector to shift left
+		for (size_t i = 0; i < state.sectors.n; i++) { // TODO check for overflow here
+			if (sector->firstwall >= index) {
+				nextSectorIndex = i + 1;
+				break;
+			}
+		}
+		size_t nextWallIndex = sector->firstwall + sector->numwalls; // next wall to shift left
+		for (size_t i = nextWallIndex; i < state.walls.n; i++) { // TODO check for overflow at end
+			state.walls.arr[i] = state.walls.arr[i + 1];
+		}
+		for (size_t i = nextSectorIndex; i < state.sectors.n; i++) {
+			state.sectors.arr[i + 1].firstwall--;
+		}
+		sector->numwalls--;
+		state.walls.n--;
+	} else {
+		sector->numwalls--;
+		state.walls.n--;
+	}
+} // TODO and this
+
+void newSector(void) {
+	if (state.sectors.n < NUMSECTORS_MAX) {
+		struct sector *sector = &state.sectors.arr[state.sectors.n++];
+		sector->numwalls = 0; sector->firstwall = state.walls.n; sector->zfloor = 0.0f;
+		sector->zceil = 5.0f;
+
+		//newWall(sector);
+	} else {
+		// TODO: communicate that the max has been reached
+	}
+} 
+
+void deleteSector(int index) {
+
+} // TODO additionally
 
 void vertline(int x, int yStart, int yEnd, uint32_t color) {
 	// set an entire vertical line of pixels to the given color
@@ -586,10 +669,10 @@ void renderGUI(void) {
 		nk_label(state.ctx, sector, NK_TEXT_LEFT);
 		nk_label(state.ctx, facing, NK_TEXT_LEFT);
 
-		// buttons
-		if (nk_button_label(state.ctx, "toggle map editor")) {
-			state.editorOpen = !state.editorOpen;
-		}
+		nk_checkbox_label(state.ctx, "show map editor", &state.editorOpen);
+		nk_checkbox_label(state.ctx, "show load/save controls", &state.loadSaveOpen);
+		nk_checkbox_label(state.ctx, "print sector BFS errors to console", &state.displayErrors);
+		
 	}
 	nk_end(state.ctx); 
 
@@ -616,8 +699,8 @@ void renderGUI(void) {
 				nk_layout_row_dynamic(state.ctx, 20, 1);
 				if (nk_tree_push(state.ctx, NK_TREE_TAB, sectorName, NK_MAXIMIZED)) {
 					nk_layout_row_dynamic(state.ctx, 20, 2);
-					nk_property_float(state.ctx, "zfloor", 0.0f, &sector->zfloor, EYE_Z, 0.1f, 0.1f);
-					nk_property_float(state.ctx, "zceil", EYE_Z, &sector->zceil, ZFAR, 0.1f, 0.1f);
+					nk_property_float(state.ctx, "#zfloor", 0.0f, &sector->zfloor, EYE_Z, 0.1f, 0.1f);
+					nk_property_float(state.ctx, "#zceil", EYE_Z, &sector->zceil, ZFAR, 0.1f, 0.1f);
 
 					for (size_t j = 0; j < sector->numwalls; j++) {
 						char wallName[64];
@@ -628,15 +711,54 @@ void renderGUI(void) {
 						nk_layout_row_dynamic(state.ctx, 20, 1);
 						nk_label(state.ctx, wallName, NK_TEXT_LEFT);
 						nk_layout_row_dynamic(state.ctx, 20, 2);
-						nk_property_int(state.ctx, "a.x", 0, &wall->a.x, (int) ZFAR, 1, 1);
-						nk_property_int(state.ctx, "a.y", 0, &wall->a.y, (int) ZFAR, 1, 1);
-						nk_property_int(state.ctx, "b.x", 0, &wall->b.x, (int) ZFAR, 1, 1);
-						nk_property_int(state.ctx, "b.y", 0, &wall->b.y, (int) ZFAR, 1, 1);
-						nk_property_int(state.ctx, "portal to", 0,
+						nk_property_int(state.ctx, "#a.x", 0, &wall->a.x, (int) ZFAR, 1, 1);
+						nk_property_int(state.ctx, "#a.y", 0, &wall->a.y, (int) ZFAR, 1, 1);
+						nk_property_int(state.ctx, "#b.x", 0, &wall->b.x, (int) ZFAR, 1, 1);
+						nk_property_int(state.ctx, "#b.y", 0, &wall->b.y, (int) ZFAR, 1, 1);
+						nk_property_int(state.ctx, "#portal to", 0,
 							&wall->portal, state.sectors.n - 1, 1, 1);
+						if (nk_button_label(state.ctx, "delete wall")) {
+							deleteWall(sector, sector->firstwall + j);
+						}
+					}
+					nk_layout_row_dynamic(state.ctx, 20, 2);
+					if (nk_button_label(state.ctx, "new wall")) {
+						newWall(sector);
+					}
+					if (nk_button_label(state.ctx, "delete sector")) {
+						deleteSector(i);
 					}
 					nk_tree_pop(state.ctx);
 				}
+			}
+			if (nk_button_label(state.ctx, "new sector")) {
+				newSector();
+			}
+		}
+		nk_end(state.ctx);
+	}
+
+	// load/save controls window
+	if (state.loadSaveOpen) {
+		if (nk_begin(state.ctx, "load/save map data", nk_rect(280, 50, 230, 250), window_flags)) {
+			nk_layout_row_dynamic(state.ctx, 30, 1);
+			nk_label(state.ctx, "path to file:", NK_TEXT_LEFT);
+			nk_edit_string(state.ctx, NK_EDIT_SIMPLE, state.editorFilepath, 
+				&state.filepathLength, 64, nk_filter_default);
+
+			nk_layout_row_dynamic(state.ctx, 30, 2);
+			if (nk_button_label(state.ctx, "load")) {
+				// reset the state
+				// TODO: check whether we need to zero out the .arr as well
+				//	it appears so!
+				state.walls.n = 0;
+				state.sectors.n = 0;
+
+				int status = loadSectors(state.editorFilepath);
+				// TODO: do something with status
+			}
+			if (nk_button_label(state.ctx, "save")) {
+				int status = saveSectors(state.editorFilepath);
 			}
 		}
 		nk_end(state.ctx);
@@ -714,6 +836,8 @@ int main(int argc, char* argv[]) {
 	nk_style_set_font(state.ctx, &font->handle);
 
 	state.editorOpen = false;
+	state.loadSaveOpen = false;
+	state.displayErrors = false;
 #endif
 
 	state.quit = false;
@@ -789,7 +913,9 @@ int main(int argc, char* argv[]) {
 
 					if (wall->portal) {
 						if (n == QUEUE_MAX) {
-							fprintf(stderr, "out of queue space in sector BFS\n");
+#ifdef RAYCAST_DEBUG
+							if (state.displayErrors) fprintf(stderr, "out of queue space in sector BFS\n");
+#endif
 							goto done;
 						}
 						queue [(i + n) % QUEUE_MAX] = wall->portal;
@@ -799,7 +925,9 @@ int main(int argc, char* argv[]) {
 			}
 done:
 			if (!found) {
-				fprintf(stderr, "player is not in a sector\n");
+#ifdef RAYCAST_DEBUG
+				if (state.displayErrors) fprintf(stderr, "player is not in a sector\n");
+#endif
 				outsideWorld = true;
 			} else {
 				state.camera.sector = found;

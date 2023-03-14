@@ -26,9 +26,13 @@ The Makefile might work with MinGW similarly to how it does on Linux. You could 
 	- Arbitrary collisions
 - Texturing
 - Better lighting
-- Level editing
+- 🌗 Level editing
 	- ✅ Nuklear immediate-mode GUI library
 	- ✅ x/y coords displayed on screen (or integrate in level editor)
+	- Edit properties of existing walls/sectors
+	- Add new walls/sectors
+	- Save new level fils to disk
+	- Edit levels visually (top-down view?)
 - More assertions/robustness improvements
 	- ✅ add error when the number of walls doesn't make sense with respect to the info in the segments section
 	- ✅ make sure that the total number of walls and sectors don't exceed the size of the arrays
