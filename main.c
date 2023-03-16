@@ -6,22 +6,19 @@
 #include <math.h>
 #include <SDL.h>
 
-#include "config.h"
 #include "cJSON.h"
 
-#ifdef RAYCAST_DEBUG
-	#define NK_INCLUDE_FIXED_TYPES
-	#define NK_INCLUDE_STANDARD_IO
-	#define NK_INCLUDE_STANDARD_VARARGS
-	#define NK_INCLUDE_DEFAULT_ALLOCATOR
-	#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
-	#define NK_INCLUDE_FONT_BAKING
-	#define NK_INCLUDE_DEFAULT_FONT
-	#define NK_IMPLEMENTATION
-	#define NK_SDL_RENDERER_IMPLEMENTATION
-	#include "nuklear.h"
-	#include "nuklear_sdl_renderer.h"
-#endif
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_STANDARD_VARARGS
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
+#define NK_IMPLEMENTATION
+#define NK_SDL_RENDERER_IMPLEMENTATION
+#include "nuklear.h"
+#include "nuklear_sdl_renderer.h"
 
 #define PROJECT_NAME "Raycast"
 #define SCREEN_WIDTH 384
@@ -85,7 +82,6 @@ struct {
 	SDL_Texture *texture;
 	uint32_t *pixels;
 
-#ifdef RAYCAST_DEBUG
 	struct nk_context *ctx;
 	nk_bool editorOpen;
 	nk_bool loadSaveOpen;
@@ -93,7 +89,6 @@ struct {
 	char editorFilepath[64];
 	int filepathLength;
 	nk_bool slomo;
-#endif	
 
 	struct {
 		struct sector arr[NUMSECTORS_MAX]; size_t n;
@@ -439,9 +434,7 @@ void present(void) {
 
 	SDL_RenderCopyEx(state.renderer, state.texture, 
 		NULL, NULL, 0.0, NULL, SDL_FLIP_VERTICAL);
-#ifdef RAYCAST_DEBUG
 	nk_sdl_render(NK_ANTI_ALIASING_ON);
-#endif
 	SDL_RenderPresent(state.renderer);
 }
 
@@ -624,12 +617,10 @@ void render(void) {
 					vertline(x, yf, yc, colorMult(0xFFD0D0D0, shade)); // draw normal walls
 				}
 
-#ifdef RAYCAST_DEBUG
 				if (state.slomo) {
 					present();
 					SDL_Delay(6);
 				}
-#endif
 			}
 
 			if (wall->portal) {
@@ -644,7 +635,6 @@ void render(void) {
 	}
 }
 
-#ifdef RAYCAST_DEBUG
 void renderGUI(void) {
 	nk_flags window_flags = NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|
 		NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE;
@@ -761,7 +751,6 @@ void renderGUI(void) {
 		nk_end(state.ctx);
 	}
 }
-#endif
 
 int main(int argc, char* argv[]) {
 	printf("Starting " PROJECT_NAME "... \n");
@@ -801,7 +790,6 @@ int main(int argc, char* argv[]) {
 		goto exit;
 	}
 
-#ifdef RAYCAST_DEBUG
 	fprintf(stderr, "Loaded %zu sectors\n", state.sectors.n - 1);
 
 	// set up GUI
@@ -836,27 +824,21 @@ int main(int argc, char* argv[]) {
 	state.loadSaveOpen = false;
 	state.displayErrors = false;
 	state.slomo = false;
-#endif
 
 	state.quit = false;
 	while (!state.quit) {
 		SDL_Event e;
-#ifdef RAYCAST_DEBUG
 		nk_input_begin(state.ctx);
-#endif
+
 		while (SDL_PollEvent(&e)) {
 			if (e.type == SDL_QUIT) {
 				state.quit = true;
 			}
-#ifdef RAYCAST_DEBUG
 			nk_sdl_handle_event(&e);
-#endif
 		}
-#ifdef RAYCAST_DEBUG
+
 		nk_input_end(state.ctx);
 		renderGUI();
-#endif
-
 
 		const float rotspeed = 3.0f * 0.016f;
 		const float movespeed = 3.0f * 0.016f;
@@ -911,9 +893,7 @@ int main(int argc, char* argv[]) {
 
 					if (wall->portal) {
 						if (n == QUEUE_MAX) {
-#ifdef RAYCAST_DEBUG
 							if (state.displayErrors) fprintf(stderr, "out of queue space in sector BFS\n");
-#endif
 							goto done;
 						}
 						queue [(i + n) % QUEUE_MAX] = wall->portal;
@@ -923,9 +903,7 @@ int main(int argc, char* argv[]) {
 			}
 done:
 			if (!found) {
-#ifdef RAYCAST_DEBUG
 				if (state.displayErrors) fprintf(stderr, "player is not in a sector\n");
-#endif
 				outsideWorld = true;
 			} else {
 				state.camera.sector = found;
@@ -946,14 +924,8 @@ done:
 		memset(state.pixels, 0, SCREEN_WIDTH * SCREEN_HEIGHT * 4);
 		render();
 
-#ifndef RAYCAST_DEBUG
-		present();
-#endif
-
-#ifdef RAYCAST_DEBUG
 		if (!state.slomo) present();
 		else state.slomo = false; // only one frame 
-#endif
 	}
 
 exit:

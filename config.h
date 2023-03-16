@@ -1,1 +1,0 @@
-#define RAYCAST_DEBUG
