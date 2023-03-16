@@ -655,16 +655,20 @@ void renderGUI(void) {
 		char coords[128];
 		char sector[64];
 		char facing[128];
+		char cos_sin[128];
 
 		snprintf(coords, 128, "x, y: %f, %f", state.camera.pos.x, state.camera.pos.y);
-		snprintf(sector, 64, "sector: %d", state.camera.sector);
+		snprintf(cos_sin, 128, "cos, sin: %f, %f", 
+			state.camera.anglecos, state.camera.anglesin);
 		snprintf(facing, 128, "facing: %f (%f) ", 
 			state.camera.angle, normalizeAngle(state.camera.angle));
+		snprintf(sector, 64, "sector: %d", state.camera.sector);
 
 		nk_layout_row_dynamic(state.ctx, 20, 1);
 		nk_label(state.ctx, coords, NK_TEXT_LEFT);
-		nk_label(state.ctx, sector, NK_TEXT_LEFT);
+		nk_label(state.ctx, cos_sin, NK_TEXT_LEFT);
 		nk_label(state.ctx, facing, NK_TEXT_LEFT);
+		nk_label(state.ctx, sector, NK_TEXT_LEFT);
 
 		nk_checkbox_label(state.ctx, "show map editor", &state.editorOpen);
 		nk_checkbox_label(state.ctx, "show load/save controls", &state.loadSaveOpen);
