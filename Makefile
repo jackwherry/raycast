@@ -31,10 +31,10 @@ ifeq ($(UNAME_S), Linux)
 endif
 
 # .h files go here
-INCLUDES = nuklear.h nuklear_sdl_renderer.h config.h
+INCLUDES = config.h nuklear.h nuklear_sdl_renderer.h cJSON.h
 
 # .o files go here
-OBJ = main.o
+OBJ = main.o cJSON.o
 
 # Generate all the .o files
 %.o: %.c $(INCLUDES)

@@ -7,6 +7,7 @@
 #include <SDL.h>
 
 #include "config.h"
+#include "cJSON.h"
 
 #ifdef RAYCAST_DEBUG
 	#define NK_INCLUDE_FIXED_TYPES
@@ -34,8 +35,8 @@
 #define SECTOR_NONE 0
 #define SECTOR_MAX 128
 
-#define NUMSECTORS_MAX 32
-#define NUMWALLS_MAX 128
+#define NUMSECTORS_MAX 1024
+#define NUMWALLS_MAX 512
 
 #define DEG2RAD(_d) ((_d) * (PI / 180.0f))
 #define RAD2DEG(_d) ((_d) * (180.0f / PI))
@@ -65,15 +66,16 @@ typedef struct vect2i_s {
 	int32_t x, y;
 } vect2i;
 
-struct sector {
-	int id;
-	size_t firstwall, numwalls;
-	float zfloor, zceil;
-};
-
 struct wall {
 	vect2i a, b;
 	int portal; // 0 for not a portal, otherwise the sector it's a portal to
+};
+
+struct sector {
+	int id;
+	size_t numwalls;
+	float zfloor, zceil;
+	struct wall walls[NUMWALLS_MAX];
 };
 
 // global state object
@@ -95,10 +97,6 @@ struct {
 	struct {
 		struct sector arr[NUMSECTORS_MAX]; size_t n;
 	} sectors;
-
-	struct {
-		struct wall arr[NUMWALLS_MAX]; size_t n;
-	} walls;
 
 	struct {
 		vect2 pos;
@@ -201,7 +199,7 @@ float normalizeAngle(float angle) {
 // point is in sector if it is on the left side of all the sector's walls
 bool pointInSector(const struct sector *sector, vect2 p) {
 	for (size_t i = 0; i < sector->numwalls; i++) {
-		const struct wall *wall = &state.walls.arr[sector->firstwall + i];
+		const struct wall *wall = &sector->walls[i];
 	
 		if (pointSide(p, vect2iToVect2(wall->a), vect2iToVect2(wall->b)) > 0) {
 			return false;
@@ -228,114 +226,137 @@ vect2 worldPosToCamera(vect2 p) {
 
 // load sectors and walls from file
 int loadSectors(const char *path) {
-	// like the jdh code that was inspired by Build engine, we're using a simple file
-	//	format with a [SECTOR] section and a [WALL] section
-
-	// Here's the general format:
-	/*
-	[SECTOR]
-	id	index	num walls	floor	ceiling
-	1	0		8			0.0		5.0
-
-	[WALL]
-	# SECTOR 0, 0..7
-	x0	y0	x1	y1	portal?
-	4	1	2	1	0
-	etc.
-	*/
-	// Note that the column headers aren't included and spaces are used as separators.
-
 	state.sectors.n = 1; // there's no sector 0
-
-	int totalExpectedWalls = 0;
-	int totalWalls = 0;
 
 	FILE *f = fopen(path, "r");
 	if (!f) return -1; // file not found (or couldn't be opened)
 
+	char *buf = malloc(1024 * 128); // 128 KB
+
 	int retval = 0;
-	enum { SCAN_SECTOR, SCAN_WALL, SCAN_NONE } ss = SCAN_NONE;
+	fseek(f, 0L, SEEK_END); // seek to the end of the file
+	long size = ftell(f); // get position, equivalent to the size of the file
+	rewind(f); // go back to the beginning of the file
 
-	enum { LINE_BUFFER_SIZE = 1024 };
-	enum { BRACKET_BUFFER_SIZE = 64 };
+	if (size == -1) { retval = -2; goto done; } // error reading file size
 
-	char line[LINE_BUFFER_SIZE], buf[BRACKET_BUFFER_SIZE]; 
-	while (fgets(line, sizeof(line), f)) {
-		char *p = line;
-		int i = 0;
-		// fast-forward past spaces
-		while (isspace(*p)) {
-			if (i >= LINE_BUFFER_SIZE - 1) {
-				retval = -7; // prevent buffer overflow
-				goto done;
-			}
-			p++;
-			i++;
-		}
-
-		if (!*p || *p == '#') {
-			continue; // ignore blank lines and comments
-		} else if (*p == '[') {
-			strncpy(buf, p + 1, sizeof(buf));
-
-			// ensure that there is a null terminator since strncpy does NOT add one for us
-			//	if there were 64 characters after the opening square bracket
-			buf[BRACKET_BUFFER_SIZE - 1] = '\0';
-
-			const char *section = strtok(buf, "]"); // note: buf is tainted from now on
-			if (!section) { retval = -2; goto done; }
-
-			if (!strcmp(section, "SECTOR")) { ss = SCAN_SECTOR; }
-			else if (!strcmp(section, "WALL")) { ss = SCAN_WALL; }
-			else { retval = -3; goto done; }
-		} else {
-			switch (ss) {
-			case SCAN_WALL: {
-				if (state.walls.n >= NUMWALLS_MAX - 1) {
-					retval = -8;
-					goto done;
-				}
-
-				struct wall *wall = &state.walls.arr[state.walls.n++];
-				if (sscanf(
-					p, "%d %d %d %d %d", 
-					&wall->a.x, &wall->a.y, 
-					&wall->b.x, &wall->b.y, 
-					&wall->portal) != 5) {
-					retval = -4; goto done;
-				}
-				totalWalls++;
-			}; break;
-			case SCAN_SECTOR: {
-				if (state.sectors.n >= NUMSECTORS_MAX - 1) {
-					retval = -9;
-					goto done;
-				}
-
-				struct sector *sector = &state.sectors.arr[state.sectors.n++];
-				if (sscanf(
-					p, "%d %zu %zu %f %f", 
-					&sector->id, &sector->firstwall, 
-					&sector->numwalls, &sector->zfloor, 
-					&sector->zceil) != 5) {
-					retval = -5; goto done;
-				}
-				totalExpectedWalls += sector->numwalls;
-			}; break;
-			default: retval = -6; goto done;
-			}
-		}
-
+	if (size > (long) 1024 * 128 - 8) {
+		retval = -3; goto done; // file size too large
 	}
+
+	size_t newLen = fread(buf, sizeof(char), 1024 * 128, f);
+	buf[++newLen] = '\0'; // guarantee that it's null-terminated
 
 	if (ferror(f)) { retval = -128; goto done; }
 
-	if (totalWalls != totalExpectedWalls) {
-		retval = -10; goto done;
+	cJSON *json = cJSON_Parse(buf);
+	if (!json) {
+		const char *error_ptr = cJSON_GetErrorPtr();
+		if (error_ptr) {
+			// fprintf(stderr, "%s", error_ptr);
+		}
+		retval = -4; goto done;
 	}
 
+	cJSON *csector = NULL;
+	cJSON *csectors = cJSON_GetObjectItemCaseSensitive(json, "sectors"); // does null check for us
+	if (!cJSON_IsArray(csectors)) {
+		retval = -5; goto done;
+	}
+
+	for (csector = csectors->child; csector != NULL; csector = csector->next) {
+		cJSON *cid = cJSON_GetArrayItem(csector, 0);
+		if (!cJSON_IsNumber(cid)) {
+			retval  = -7; goto done;
+		}
+		int id = (int) cJSON_GetNumberValue(cid);
+
+		if (id >= NUMSECTORS_MAX) {
+			retval = -18; goto done;
+		}
+
+		struct sector *sector = &state.sectors.arr[id];
+		sector->id = id;
+
+		cJSON *czfloor = cJSON_GetArrayItem(csector, 1);
+		if(!cJSON_IsNumber(czfloor)) {
+			retval = -8; goto done;
+		}
+		float zfloor = (float) cJSON_GetNumberValue(czfloor);
+		sector->zfloor = zfloor;
+
+		cJSON *czceil = cJSON_GetArrayItem(csector, 2);
+		if (!cJSON_IsNumber(czceil)) {
+			retval = -9; goto done;
+		}
+		float zceil = (float) cJSON_GetNumberValue(czceil);
+		sector->zceil = zceil;
+
+		cJSON *cwalls = cJSON_GetArrayItem(csector, 3);
+		cJSON *cwall = NULL;
+		if (!cJSON_IsArray(cwalls)) {
+			retval = -10; goto done;
+		}
+
+		int numwalls = cJSON_GetArraySize(cwalls);
+		sector->numwalls = numwalls;
+
+		int i = 0;
+		for (cwall = cwalls->child; cwall != NULL; cwall = cwall->next) {
+			if (i >= NUMWALLS_MAX) {
+				retval = -17; goto done;
+			}
+
+			if (cJSON_GetArraySize(cwall) != 5) {
+				retval = -11; goto done;
+			}
+
+			cJSON *cx0 = cJSON_GetArrayItem(cwall, 0);
+			if (!cJSON_IsNumber(cx0)) {
+				retval = -12; goto done;
+			}
+			int x0 = (int) cJSON_GetNumberValue(cx0);
+
+			cJSON *cy0 = cJSON_GetArrayItem(cwall, 1);
+			if (!cJSON_IsNumber(cy0)) {
+				retval = -13; goto done;
+			}
+			int y0 = (int) cJSON_GetNumberValue(cy0);
+
+			cJSON *cx1 = cJSON_GetArrayItem(cwall, 2);
+			if (!cJSON_IsNumber(cx1)) {
+				retval = -14; goto done;
+			}
+			int x1 = (int) cJSON_GetNumberValue(cx1);
+
+			cJSON *cy1 = cJSON_GetArrayItem(cwall, 3);
+			if (!cJSON_IsNumber(cy1)) {
+				retval = -15; goto done;
+			}
+			int y1 = (int) cJSON_GetNumberValue(cy1);
+
+			cJSON *cportal = cJSON_GetArrayItem(cwall, 4);
+			if (!cJSON_IsNumber(cportal)) {
+				retval = -16; goto done;
+			}
+			int portal = (int) cJSON_GetNumberValue(cportal);
+
+			vect2i a = { x0, y0 };
+			vect2i b = { x1, y1 };
+
+			sector->walls[i] = (struct wall) { a, b, portal };
+			i++;
+			sector->numwalls++;
+		}
+		state.sectors.n++;
+	}
+
+	// free memory used by json object;
+	//	not critical to do in 'done' since the program's about to terminate if there's any error
+	cJSON_Delete(json);
 done:
 	fclose(f);
+	free(buf);
 	return retval;
 }
 
@@ -343,70 +364,10 @@ int saveSectors(const char *path) {
 	return -128;
 } // TODO implement this
 
-void newWall(struct sector *sector) {
-	if (state.walls.n < NUMWALLS_MAX) {
-		if (sector->firstwall + sector->numwalls != state.walls.n) {
-			// if this isn't the last sector, we need to shift all the other walls to
-			//	make room for this one
-			size_t nextSectorIndex = 0;
-			for (size_t i = 0; i < state.sectors.n; i++) { // TODO check for overflow here
-				if (sector->firstwall == state.sectors.arr[i + 1].firstwall) {
-					nextSectorIndex = i + 1;
-					break;
-				}
-			}
-			size_t nextWallIndex = sector->firstwall + sector->numwalls;
-			for (size_t i = state.walls.n - 1; i > nextWallIndex - 1; i--) {
-				state.walls.arr[i] = state.walls.arr[i - 1];
-			}
-			for (size_t i = nextSectorIndex; i < state.sectors.n; i++) {
-				state.sectors.arr[i + 1].firstwall++;
-			}
-			struct wall *wall = &state.walls.arr[sector->numwalls];
-			wall->a.x = 0; wall->b.x = 0; wall->a.y = 0; wall->b.y = 0; wall->portal = 0;
-			sector->numwalls++;
-			state.walls.n++;
-		} else {
-			struct wall *wall = &state.walls.arr[state.walls.n++];
-			wall->a.x = 0; wall->b.x = 0; wall->a.y = 0; wall->b.y = 0; wall->portal = 0;
-			sector->numwalls++;
-		}
-	} else {
-		// TODO: communicate that the max has been reached
-	}
-}
-
-void deleteWall(struct sector *sector, int index) {
-	if (sector->firstwall + sector->numwalls != state.walls.n) {
-		// if this isn't the last sector, we need to shift all the other walls to 
-		//	clean up gaps
-		size_t nextSectorIndex = 0; // next sector to shift left
-		for (size_t i = 0; i < state.sectors.n; i++) { // TODO check for overflow here
-			if (sector->firstwall >= index) {
-				nextSectorIndex = i + 1;
-				break;
-			}
-		}
-		size_t nextWallIndex = sector->firstwall + sector->numwalls; // next wall to shift left
-		for (size_t i = nextWallIndex; i < state.walls.n; i++) { // TODO check for overflow at end
-			state.walls.arr[i] = state.walls.arr[i + 1];
-		}
-		for (size_t i = nextSectorIndex; i < state.sectors.n; i++) {
-			state.sectors.arr[i + 1].firstwall--;
-		}
-		sector->numwalls--;
-		state.walls.n--;
-	} else {
-		sector->numwalls--;
-		state.walls.n--;
-	}
-} // TODO and this
-
 void newSector(void) {
 	if (state.sectors.n < NUMSECTORS_MAX) {
 		struct sector *sector = &state.sectors.arr[state.sectors.n++];
-		sector->numwalls = 0; sector->firstwall = state.walls.n; sector->zfloor = 0.0f;
-		sector->zceil = 5.0f;
+		sector->numwalls = 0; sector->zfloor = 0.0f; sector->zceil = 5.0f;
 
 		//newWall(sector);
 	} else {
@@ -414,9 +375,17 @@ void newSector(void) {
 	}
 } 
 
-void deleteSector(int index) {
+void newWall(struct sector *sector) {
+}
 
-} // TODO additionally
+// you can't delete a sector because we don't want to change the ids of every other 
+//	sector, since that would cause existing portals to break. this could be changed by
+//	iterating through walls and updating all the sector references when one is deleted
+//	but that's complicated and unnecessary since you can just delete all the walls in a
+//	sector and it's practically gone
+
+void deleteWall(struct sector *sector, int index) {
+} // TODO and this
 
 void vertline(int x, int yStart, int yEnd, uint32_t color) {
 	// set an entire vertical line of pixels to the given color
@@ -500,7 +469,7 @@ void render(void) {
 		const struct sector *sector = &state.sectors.arr[entry.id];
 
 		for (size_t i = 0; i < sector->numwalls; i++) {
-			const struct wall *wall = &state.walls.arr[sector->firstwall + i];
+			const struct wall *wall = &sector->walls[i];
 
 			// translate relative to player and rotate points around player's view
 			const vect2 
@@ -679,23 +648,22 @@ void renderGUI(void) {
 	// map editor window
 	if (state.editorOpen) {
 		if (nk_begin(state.ctx, "map editor", nk_rect(330, 300, 300, 300), window_flags)) {
-			// display the number of sectors and walls added
+			// display the number of sectors added
 			char sectors[64];
-			char walls[64];
 
 			// sectors start at 1, walls start at 0
 			snprintf(sectors, 64, "sectors: %zu/%d", state.sectors.n - 1, NUMSECTORS_MAX);
-			snprintf(walls, 64, "walls: %zu/%d", state.walls.n, NUMWALLS_MAX);
 
-			nk_layout_row_dynamic(state.ctx, 20, 2); // put both labels on the same line
+			nk_layout_row_dynamic(state.ctx, 20, 1);
 			nk_label(state.ctx, sectors, NK_TEXT_CENTERED);
-			nk_label(state.ctx, walls, NK_TEXT_CENTERED);
 
 			for (size_t i = 0; i < state.sectors.n - 1; i++) {
-				char sectorName[64];
-				snprintf(sectorName, 64, "sector %zu", i + 1);
-
 				struct sector *sector = &state.sectors.arr[i + 1];
+
+				char sectorName[128];
+				snprintf(sectorName, 128, "sector %zu, %d walls (%d max)",
+					i + 1, sector->numwalls, NUMWALLS_MAX);
+
 				nk_layout_row_dynamic(state.ctx, 20, 1);
 				if (nk_tree_push(state.ctx, NK_TREE_TAB, sectorName, NK_MAXIMIZED)) {
 					nk_layout_row_dynamic(state.ctx, 20, 2);
@@ -704,9 +672,9 @@ void renderGUI(void) {
 
 					for (size_t j = 0; j < sector->numwalls; j++) {
 						char wallName[64];
-						snprintf(wallName, 64, "wall %zu", sector->firstwall + j);
+						snprintf(wallName, 64, "wall %zu", j);
 
-						struct wall *wall = &state.walls.arr[sector->firstwall + j];
+						struct wall *wall = &sector->walls[j];
 
 						nk_layout_row_dynamic(state.ctx, 20, 1);
 						nk_label(state.ctx, wallName, NK_TEXT_LEFT);
@@ -718,15 +686,12 @@ void renderGUI(void) {
 						nk_property_int(state.ctx, "#portal to", 0,
 							&wall->portal, state.sectors.n - 1, 1, 1);
 						if (nk_button_label(state.ctx, "delete wall")) {
-							deleteWall(sector, sector->firstwall + j);
+							deleteWall(sector, j);
 						}
 					}
 					nk_layout_row_dynamic(state.ctx, 20, 2);
 					if (nk_button_label(state.ctx, "new wall")) {
 						newWall(sector);
-					}
-					if (nk_button_label(state.ctx, "delete sector")) {
-						deleteSector(i);
 					}
 					nk_tree_pop(state.ctx);
 				}
@@ -751,7 +716,6 @@ void renderGUI(void) {
 				// reset the state
 				// TODO: check whether we need to zero out the .arr as well
 				//	it appears so!
-				state.walls.n = 0;
 				state.sectors.n = 0;
 
 				int status = loadSectors(state.editorFilepath);
@@ -804,9 +768,9 @@ int main(int argc, char* argv[]) {
 		goto exit;
 	}
 
-	fprintf(stderr, "Loaded %zu sectors with %zu walls\n", state.sectors.n - 1, state.walls.n);
-
 #ifdef RAYCAST_DEBUG
+	fprintf(stderr, "Loaded %zu sectors\n", state.sectors.n - 1);
+
 	// set up GUI
 	state.ctx = nk_sdl_init(state.window, state.renderer);
 	float font_scale = 1;
@@ -909,7 +873,7 @@ int main(int argc, char* argv[]) {
 
 				// check neighbors
 				for (size_t j = 0; j < sector->numwalls; j++) {
-					const struct wall *wall = &state.walls.arr[sector->firstwall + j];
+					const struct wall *wall = &sector->walls[j];
 
 					if (wall->portal) {
 						if (n == QUEUE_MAX) {
