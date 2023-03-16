@@ -606,7 +606,7 @@ void render(void) {
 #ifdef RAYCAST_DEBUG
 				if (state.slomo) {
 					present();
-					SDL_Delay(10);
+					SDL_Delay(6);
 				}
 #endif
 			}
