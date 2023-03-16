@@ -36,8 +36,8 @@ I chose to include Nuklear and cJSON in this repository, so you won't need to do
 - 🌗 Level editing
 	- ✅ Nuklear immediate-mode GUI library
 	- ✅ x/y coords displayed on screen (or integrate in level editor)
-	- Edit properties of existing walls/sectors
-	- Add new walls/sectors
+	- ✅ Edit properties of existing walls/sectors
+	- ✅ Add new walls/sectors
 	- Save new level files to disk
 	- Edit levels visually (top-down view?)
 - More assertions/robustness improvements

@@ -365,17 +365,23 @@ int saveSectors(const char *path) {
 } // TODO implement this
 
 void newSector(void) {
-	if (state.sectors.n < NUMSECTORS_MAX) {
+	if (state.sectors.n + 1 < NUMSECTORS_MAX) {
 		struct sector *sector = &state.sectors.arr[state.sectors.n++];
 		sector->numwalls = 0; sector->zfloor = 0.0f; sector->zceil = 5.0f;
-
-		//newWall(sector);
 	} else {
-		// TODO: communicate that the max has been reached
+		// maybe communicate that the max has been reached?
+		//	the max is already shown at the top but there may be an off-by-one here
 	}
 } 
 
 void newWall(struct sector *sector) {
+	if (sector->numwalls + 1 < NUMWALLS_MAX) {
+		struct wall *wall = &sector->walls[sector->numwalls++];
+		vect2i a = { 0, 0 }, b = { 0, 0 };
+		wall->a = a; wall->b = b; wall->portal = 0;
+	} else {
+		// maybe communicate that the max has been reached?
+	}
 }
 
 // you can't delete a sector because we don't want to change the ids of every other 
@@ -385,7 +391,22 @@ void newWall(struct sector *sector) {
 //	sector and it's practically gone
 
 void deleteWall(struct sector *sector, int index) {
-} // TODO and this
+	if (sector->numwalls > 0) {
+		if (sector->numwalls > 1) {
+			// shift everything to the left, erasing the wall at the given index
+			//	only required if the sector has two or more walls
+			for (int i = index; i < sector->numwalls - 2; i++) {
+				sector->walls[i] = sector->walls[i + 1];
+			}
+		}
+
+		// decrement the size by one
+		sector->numwalls--;
+	} else {
+		// the button shouldn't show up in this case but let's avoid negative pointer
+		//	arithmetic anyway
+	}
+}
 
 void vertline(int x, int yStart, int yEnd, uint32_t color) {
 	// set an entire vertical line of pixels to the given color
