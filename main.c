@@ -92,6 +92,7 @@ struct {
 	nk_bool displayErrors;
 	char editorFilepath[64];
 	int filepathLength;
+	nk_bool slomo;
 #endif	
 
 	struct {
@@ -346,7 +347,6 @@ int loadSectors(const char *path) {
 
 			sector->walls[i] = (struct wall) { a, b, portal };
 			i++;
-			sector->numwalls++;
 		}
 		state.sectors.n++;
 	}
@@ -602,6 +602,13 @@ void render(void) {
 				} else {
 					vertline(x, yf, yc, colorMult(0xFFD0D0D0, shade)); // draw normal walls
 				}
+
+#ifdef RAYCAST_DEBUG
+				if (state.slomo) {
+					present();
+					SDL_Delay(10);
+				}
+#endif
 			}
 
 			if (wall->portal) {
@@ -641,6 +648,7 @@ void renderGUI(void) {
 		nk_checkbox_label(state.ctx, "show map editor", &state.editorOpen);
 		nk_checkbox_label(state.ctx, "show load/save controls", &state.loadSaveOpen);
 		nk_checkbox_label(state.ctx, "print sector BFS errors to console", &state.displayErrors);
+		nk_checkbox_label(state.ctx, "slow motion", &state.slomo);
 		
 	}
 	nk_end(state.ctx); 
@@ -802,6 +810,7 @@ int main(int argc, char* argv[]) {
 	state.editorOpen = false;
 	state.loadSaveOpen = false;
 	state.displayErrors = false;
+	state.slomo = false;
 #endif
 
 	state.quit = false;
@@ -911,7 +920,15 @@ done:
 		// clear existing pixel array and render to it
 		memset(state.pixels, 0, SCREEN_WIDTH * SCREEN_HEIGHT * 4);
 		render();
+
+#ifndef RAYCAST_DEBUG
 		present();
+#endif
+
+#ifdef RAYCAST_DEBUG
+		if (!state.slomo) present();
+		else state.slomo = false; // only one frame 
+#endif
 	}
 
 exit:
