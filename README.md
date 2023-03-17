@@ -50,3 +50,4 @@ I chose to include Nuklear and cJSON in this repository, so you won't need to do
 - Wall decals
 - Mobs
 - HUD
+- Procedural generation

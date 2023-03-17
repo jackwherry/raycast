@@ -90,6 +90,7 @@ struct {
 	int filepathLength;
 	nk_bool slomo;
 	nk_bool effects;
+	nk_bool noclip;
 
 	struct {
 		struct sector arr[NUMSECTORS_MAX]; size_t n;
@@ -414,7 +415,8 @@ void vertline(int x, int yStart, int yEnd, uint32_t color) {
 
 		if (state.effects) {
 			// intentionally overflow red channel of color for cool results
-			color += (166 + SDL_GetTicks() / 1000) / (yEnd - yStart);
+			color += ((uint32_t) state.camera.pos.x
+			 + (uint32_t) state.camera.pos.y + 166) / (yEnd - yStart);
 		}
 
 		state.pixels[i] = color;
@@ -671,6 +673,10 @@ void renderGUI(void) {
 		nk_checkbox_label(state.ctx, "print sector BFS errors to console", &state.displayErrors);
 		nk_checkbox_label(state.ctx, "slow motion", &state.slomo);
 		nk_checkbox_label(state.ctx, "visual effects", &state.effects);
+		nk_checkbox_label(state.ctx, "noclip", &state.noclip);
+		if (nk_button_label(state.ctx, "teleport to (2, 2)")) {
+			state.camera.pos = (vect2) { 2.0, 2.0 };
+		}
 		
 	}
 	nk_end(state.ctx); 
@@ -832,6 +838,7 @@ int main(int argc, char* argv[]) {
 	state.displayErrors = false;
 	state.slomo = false;
 	state.effects = true;
+	state.noclip = false;
 
 	state.quit = false;
 	while (!state.quit) {
@@ -919,7 +926,7 @@ done:
 		}
 
 		// check for collisions and update the camera pos accordingly
-		if (outsideWorld) {
+		if (outsideWorld && !state.noclip) {
 			vect2 newPosition = { state.positionBeforeWorldExit.x, state.positionBeforeWorldExit.y };
 			state.camera.pos = newPosition;
 			state.camera.sector = state.sectorBeforeWorldExit;
