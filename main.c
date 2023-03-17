@@ -885,7 +885,7 @@ int main(int argc, char* argv[]) {
 		// update player's sector
 		{
 			// BFS neighbors in a circular queue because player is likely to be in a neighboring sector
-			enum { QUEUE_MAX = NUMSECTORS_MAX * 2};
+			enum { QUEUE_MAX = 64 };
 			int queue[QUEUE_MAX] = { state.camera.sector };
 			int i = 0, n = 1, found = SECTOR_NONE;
 
@@ -932,8 +932,10 @@ done:
 			state.camera.sector = state.sectorBeforeWorldExit;
 		}
 
-		state.positionBeforeWorldExit = state.camera.pos;
-		state.sectorBeforeWorldExit = state.camera.sector;
+		if (!outsideWorld) {
+			state.positionBeforeWorldExit = state.camera.pos;
+			state.sectorBeforeWorldExit = state.camera.sector;
+		}
 
 		// clear existing pixel array and render to it
 		memset(state.pixels, 0, SCREEN_WIDTH * SCREEN_HEIGHT * 4);
