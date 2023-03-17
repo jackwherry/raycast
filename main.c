@@ -83,7 +83,6 @@ struct {
 
 	struct nk_context *ctx;
 	nk_bool editorOpen;
-	// nk_bool loadSaveOpen;
 	nk_bool displayErrors;
 	char editorFilepath[64];
 	int filepathLength;
@@ -160,7 +159,7 @@ int screenAngleToX(float angle) {
 
 // see: https://en.wikipedia.org/wiki/Line–line_intersection
 // compute intersection of two line segments, returns (NAN, NAN) if there is
-// no intersection.
+// no intersection
 vect2 intersectSegs(vect2 a0, vect2 a1, vect2 b0, vect2 b1) {
 	const float d =
 		((a0.x - a1.x) * (b0.y - b1.y))
@@ -356,18 +355,11 @@ done:
 	return retval;
 }
 
-// int saveSectors(const char *path) {
-// 	return -128;
-// } // TODO implement this
-
 void newSector(void) {
 	if (state.sectors.n + 1 < NUMSECTORS_MAX) {
 		struct sector *sector = &state.sectors.arr[state.sectors.n++];
 		sector->numwalls = 0; sector->zfloor = 0.0f; sector->zceil = 5.0f;
-	} else {
-		// maybe communicate that the max has been reached?
-		//	the max is already shown at the top but there may be an off-by-one here
-	}
+	} 
 } 
 
 void newWall(struct sector *sector) {
@@ -375,16 +367,12 @@ void newWall(struct sector *sector) {
 		struct wall *wall = &sector->walls[sector->numwalls++];
 		vect2i a = { 0, 0 }, b = { 0, 0 };
 		wall->a = a; wall->b = b; wall->portal = 0;
-	} else {
-		// maybe communicate that the max has been reached?
-	}
+	} 
 }
 
 // you can't delete a sector because we don't want to change the ids of every other 
-//	sector, since that would cause existing portals to break. this could be changed by
-//	iterating through walls and updating all the sector references when one is deleted
-//	but that's complicated and unnecessary since you can just delete all the walls in a
-//	sector and it's practically gone
+//	sector, since that would cause existing portals to break---instead you should 
+//	delete all the walls in a sector or remove it from the level file
 
 void deleteWall(struct sector *sector, int index) {
 	if (sector->numwalls > 0) {
@@ -398,9 +386,6 @@ void deleteWall(struct sector *sector, int index) {
 
 		// decrement the size by one
 		sector->numwalls--;
-	} else {
-		// the button shouldn't show up in this case but let's avoid negative pointer
-		//	arithmetic anyway
 	}
 }
 
@@ -427,10 +412,8 @@ void present(void) {
 	int pitch;
 
 	SDL_LockTexture(state.texture, NULL, &px, &pitch); // replace UpdateTexture
-	{
-		for (size_t y = 0; y < SCREEN_HEIGHT; y++) {
-			memcpy(&((uint8_t*) px)[y * pitch], &state.pixels[y * SCREEN_WIDTH], SCREEN_WIDTH * 4);
-		}
+	for (size_t y = 0; y < SCREEN_HEIGHT; y++) {
+		memcpy(&((uint8_t*) px)[y * pitch], &state.pixels[y * SCREEN_WIDTH], SCREEN_WIDTH * 4);
 	}
 	SDL_UnlockTexture(state.texture);
 
@@ -458,6 +441,7 @@ void render(void) {
 	memset(sectdraw, 0, sizeof(sectdraw));
 
 	// calculate edges of near/far planes, looking down positive y axis
+	//	see: https://en.wikipedia.org/wiki/Viewing_frustum
 	const vect2
 		zdl = rotate(((vect2) { 0.0f, 1.0f }),  (HFOV / 2.0f)),
 		zdr = rotate(((vect2) { 0.0f, 1.0f }), -(HFOV / 2.0f)), // direction vectors left and right
@@ -511,7 +495,7 @@ void render(void) {
 				ap0 = normalizeAngle(atan2(cp0.y, cp0.x) - PI_2),
 				ap1 = normalizeAngle(atan2(cp1.y, cp1.x) - PI_2);
 
-			// clip against view frustum if both angles are not clearly within HFOV
+			// clip against view frustum if both angles are not within HFOV
 			if (cp0.y < ZNEAR 
 				|| cp1.y < ZNEAR 
 				|| ap0 >  (HFOV / 2)
@@ -548,8 +532,10 @@ void render(void) {
 			if (tx0 > entry.x1) continue;
 			if (tx1 < entry.x0) continue;
 
+			// give the illusion of light on walls
 			const int wallshade = 16 * (sin(atan2f(wall->b.x - wall->a.x, wall->b.y - wall->a.y)) + 1.0f);
 
+			// clamp to portal boundaries
 			const int
 				x0 = clampi(tx0, entry.x0, entry.x1),
 				x1 = clampi(tx1, entry.x0, entry.x1);
@@ -624,6 +610,7 @@ void render(void) {
 					vertline(x, yf, yc, colorMult(0xFFD0D0D0, shade)); // draw normal walls
 				}
 
+				// present now to hide the UI and make slomo smooth
 				if (state.slomo) {
 					present();
 					SDL_Delay(6);
@@ -668,7 +655,6 @@ void renderGUI(void) {
 		nk_label(state.ctx, sector, NK_TEXT_LEFT);
 
 		nk_checkbox_label(state.ctx, "show map editor", &state.editorOpen);
-		// nk_checkbox_label(state.ctx, "show load/save controls", &state.loadSaveOpen);
 		nk_checkbox_label(state.ctx, "print sector BFS errors to console", &state.displayErrors);
 		nk_checkbox_label(state.ctx, "slow motion", &state.slomo);
 		nk_checkbox_label(state.ctx, "visual effects", &state.effects);
@@ -737,31 +723,6 @@ void renderGUI(void) {
 		}
 		nk_end(state.ctx);
 	}
-
-	// // load/save controls window
-	// if (state.loadSaveOpen) {
-	// 	if (nk_begin(state.ctx, "load/save map data", nk_rect(280, 50, 230, 250), window_flags)) {
-	// 		nk_layout_row_dynamic(state.ctx, 30, 1);
-	// 		nk_label(state.ctx, "path to file:", NK_TEXT_LEFT);
-	// 		nk_edit_string(state.ctx, NK_EDIT_SIMPLE, state.editorFilepath, 
-	// 			&state.filepathLength, 64, nk_filter_default);
-
-	// 		nk_layout_row_dynamic(state.ctx, 30, 2);
-	// 		if (nk_button_label(state.ctx, "load")) {
-	// 			// reset the state
-	// 			// TODO: check whether we need to zero out the .arr as well
-	// 			//	it appears so!
-	// 			state.sectors.n = 0;
-
-	// 			int status = loadSectors(state.editorFilepath);
-	// 			// TODO: do something with status
-	// 		}
-	// 		if (nk_button_label(state.ctx, "save")) {
-	// 			int status = saveSectors(state.editorFilepath);
-	// 		}
-	// 	}
-	// 	nk_end(state.ctx);
-	// }
 }
 
 int main(int argc, char* argv[]) {
@@ -833,7 +794,6 @@ int main(int argc, char* argv[]) {
 	nk_style_set_font(state.ctx, &font->handle);
 
 	state.editorOpen = false;
-//	state.loadSaveOpen = false;
 	state.displayErrors = false;
 	state.slomo = false;
 	state.effects = true;
