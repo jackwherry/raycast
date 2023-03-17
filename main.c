@@ -84,7 +84,7 @@ struct {
 
 	struct nk_context *ctx;
 	nk_bool editorOpen;
-	nk_bool loadSaveOpen;
+	// nk_bool loadSaveOpen;
 	nk_bool displayErrors;
 	char editorFilepath[64];
 	int filepathLength;
@@ -357,9 +357,9 @@ done:
 	return retval;
 }
 
-int saveSectors(const char *path) {
-	return -128;
-} // TODO implement this
+// int saveSectors(const char *path) {
+// 	return -128;
+// } // TODO implement this
 
 void newSector(void) {
 	if (state.sectors.n + 1 < NUMSECTORS_MAX) {
@@ -669,7 +669,7 @@ void renderGUI(void) {
 		nk_label(state.ctx, sector, NK_TEXT_LEFT);
 
 		nk_checkbox_label(state.ctx, "show map editor", &state.editorOpen);
-		nk_checkbox_label(state.ctx, "show load/save controls", &state.loadSaveOpen);
+		// nk_checkbox_label(state.ctx, "show load/save controls", &state.loadSaveOpen);
 		nk_checkbox_label(state.ctx, "print sector BFS errors to console", &state.displayErrors);
 		nk_checkbox_label(state.ctx, "slow motion", &state.slomo);
 		nk_checkbox_label(state.ctx, "visual effects", &state.effects);
@@ -739,30 +739,30 @@ void renderGUI(void) {
 		nk_end(state.ctx);
 	}
 
-	// load/save controls window
-	if (state.loadSaveOpen) {
-		if (nk_begin(state.ctx, "load/save map data", nk_rect(280, 50, 230, 250), window_flags)) {
-			nk_layout_row_dynamic(state.ctx, 30, 1);
-			nk_label(state.ctx, "path to file:", NK_TEXT_LEFT);
-			nk_edit_string(state.ctx, NK_EDIT_SIMPLE, state.editorFilepath, 
-				&state.filepathLength, 64, nk_filter_default);
+	// // load/save controls window
+	// if (state.loadSaveOpen) {
+	// 	if (nk_begin(state.ctx, "load/save map data", nk_rect(280, 50, 230, 250), window_flags)) {
+	// 		nk_layout_row_dynamic(state.ctx, 30, 1);
+	// 		nk_label(state.ctx, "path to file:", NK_TEXT_LEFT);
+	// 		nk_edit_string(state.ctx, NK_EDIT_SIMPLE, state.editorFilepath, 
+	// 			&state.filepathLength, 64, nk_filter_default);
 
-			nk_layout_row_dynamic(state.ctx, 30, 2);
-			if (nk_button_label(state.ctx, "load")) {
-				// reset the state
-				// TODO: check whether we need to zero out the .arr as well
-				//	it appears so!
-				state.sectors.n = 0;
+	// 		nk_layout_row_dynamic(state.ctx, 30, 2);
+	// 		if (nk_button_label(state.ctx, "load")) {
+	// 			// reset the state
+	// 			// TODO: check whether we need to zero out the .arr as well
+	// 			//	it appears so!
+	// 			state.sectors.n = 0;
 
-				int status = loadSectors(state.editorFilepath);
-				// TODO: do something with status
-			}
-			if (nk_button_label(state.ctx, "save")) {
-				int status = saveSectors(state.editorFilepath);
-			}
-		}
-		nk_end(state.ctx);
-	}
+	// 			int status = loadSectors(state.editorFilepath);
+	// 			// TODO: do something with status
+	// 		}
+	// 		if (nk_button_label(state.ctx, "save")) {
+	// 			int status = saveSectors(state.editorFilepath);
+	// 		}
+	// 	}
+	// 	nk_end(state.ctx);
+	// }
 }
 
 int main(int argc, char* argv[]) {
@@ -834,7 +834,7 @@ int main(int argc, char* argv[]) {
 	nk_style_set_font(state.ctx, &font->handle);
 
 	state.editorOpen = false;
-	state.loadSaveOpen = false;
+//	state.loadSaveOpen = false;
 	state.displayErrors = false;
 	state.slomo = false;
 	state.effects = true;
