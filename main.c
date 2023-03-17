@@ -89,6 +89,7 @@ struct {
 	char editorFilepath[64];
 	int filepathLength;
 	nk_bool slomo;
+	nk_bool effects;
 
 	struct {
 		struct sector arr[NUMSECTORS_MAX]; size_t n;
@@ -411,6 +412,11 @@ void vertline(int x, int yStart, int yEnd, uint32_t color) {
 		// force a crash before writing outside array bounds
 		assert(i >= 0 && i < SCREEN_WIDTH * SCREEN_HEIGHT * 4);
 
+		if (state.effects) {
+			// intentionally overflow red channel of color for cool results
+			color += (166 + SDL_GetTicks() / 1000) / (yEnd - yStart);
+		}
+
 		state.pixels[i] = color;
 	}
 }
@@ -664,6 +670,7 @@ void renderGUI(void) {
 		nk_checkbox_label(state.ctx, "show load/save controls", &state.loadSaveOpen);
 		nk_checkbox_label(state.ctx, "print sector BFS errors to console", &state.displayErrors);
 		nk_checkbox_label(state.ctx, "slow motion", &state.slomo);
+		nk_checkbox_label(state.ctx, "visual effects", &state.effects);
 		
 	}
 	nk_end(state.ctx); 
@@ -824,6 +831,7 @@ int main(int argc, char* argv[]) {
 	state.loadSaveOpen = false;
 	state.displayErrors = false;
 	state.slomo = false;
+	state.effects = true;
 
 	state.quit = false;
 	while (!state.quit) {
