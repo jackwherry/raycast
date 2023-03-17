@@ -1,6 +1,8 @@
 # Raycast
 Game engine demo
 
+![Game screenshot](/screenshot.png?raw=true "debug and map editor windows open")
+
 Features:
 * Arbitrary wall geometry; not restricted to boxes
 * Sector and portal-based rendering with arbitrary floor and ceiling heights
