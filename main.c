@@ -30,7 +30,6 @@
 #define PI_4 (PI / 4.0f)
 
 #define SECTOR_NONE 0
-#define SECTOR_MAX 128
 
 #define NUMSECTORS_MAX 1024
 #define NUMWALLS_MAX 512
@@ -455,7 +454,7 @@ void render(void) {
 	}
 
 	// track which sectors have been drawn
-	bool sectdraw[SECTOR_MAX];
+	bool sectdraw[NUMSECTORS_MAX];
 	memset(sectdraw, 0, sizeof(sectdraw));
 
 	// calculate edges of near/far planes, looking down positive y axis
