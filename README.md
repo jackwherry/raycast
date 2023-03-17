@@ -1,7 +1,17 @@
 # Raycast
-Project goal: game (or at least game engine) that uses raycasting
+Game engine demo
 
-Inspired by https://www.youtube.com/watch?v=fSjc8vLMg8c
+Features:
+* Arbitrary wall geometry; not restricted to boxes
+* Sector and portal-based rendering with arbitrary floor and ceiling heights
+* Simple wall collision detection
+* Level files specified in JSON
+* Immediate mode GUI overlay (using [Nuklear](https://github.com/Immediate-Mode-UI/Nuklear))
+* Level/map editor; modify map geometry while the game is running
+* Visual effects with color and gradients
+* Runs at 60 frames per second using software rendering 
+
+Inspired by https://www.youtube.com/watch?v=fSjc8vLMg8c and https://www.youtube.com/watch?v=HQYsFshbkYw, with some code and structure modified from [this demo](https://github.com/jdah/doomenstein-3d/blob/main/src/main_doom.c).
 
 ## Building and running
 ### macOS
@@ -18,16 +28,16 @@ You may be able to use the Xcode build system if you'd prefer.
 Install SDL2 with your distribution's package manager (or from source) and run `make`. You may need to modify the include or link flags.
 
 ### Windows
-The Makefile might work with MinGW similarly to how it does on Linux. You could also just ignore it and use the Visual Studio build system instead.
+The Makefile might work with MinGW similarly to how it does on Linux. You could also use the Visual Studio build system instead.
 
 ## Third-party libraries used
 - [SDL](https://www.libsdl.org)
 - [Nuklear](https://github.com/Immediate-Mode-UI/Nuklear) and [nuklear_sdl_renderer](https://github.com/Immediate-Mode-UI/Nuklear/blob/master/demo/sdl_renderer/nuklear_sdl_renderer.h)
 - [cJSON](https://github.com/DaveGamble/cJSON)
 
-I chose to include Nuklear and cJSON in this repository, so you won't need to download those in order to build this project. The SDL wiki doesn't recommend statically linking it because doing so makes it harder to run old games on newer operating systems where a newer SDL version is needed, so that's the only external dependency. 
+I chose to include Nuklear and cJSON in this repository, so you won't need to download those in order to build this project. SDL is an external dependency. 
 
-## Possible TODOs
+## Possible next steps
 - 🌓 Collision handling
 	- ✅ Basic wall-player collisions
 	- Arbitrary collisions
@@ -41,11 +51,11 @@ I chose to include Nuklear and cJSON in this repository, so you won't need to do
 	- Save new level files to disk
 	- Edit levels visually (top-down view?)
 - More assertions/robustness improvements
-	- ✅ add error when the number of walls doesn't make sense with respect to the info in the segments section
 	- ✅ make sure that the total number of walls and sectors don't exceed the size of the arrays
 		- or switch to a custom arraylist implementation here instead
 	- ✅ cross platform support
 - Changing EYE_Z based on floor height
+	- the naive solution doesn't work here
 - Billboard sprites
 - Wall decals
 - Mobs
