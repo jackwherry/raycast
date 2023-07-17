@@ -1,5 +1,5 @@
 # Raycast
-Game engine demo
+Walk around a 3D world rendered with raycasting
 
 ![Game screenshot](/screenshot.png?raw=true "debug and map editor windows open")
 
@@ -13,7 +13,7 @@ Features:
 * Visual effects with color and gradients
 * Runs at 60 frames per second using software rendering 
 
-Inspired by https://www.youtube.com/watch?v=fSjc8vLMg8c and https://www.youtube.com/watch?v=HQYsFshbkYw, with some code and structure modified from [this demo](https://github.com/jdah/doomenstein-3d/blob/main/src/main_doom.c).
+Inspired by https://www.youtube.com/watch?v=fSjc8vLMg8c and https://www.youtube.com/watch?v=HQYsFshbkYw. Some renderer code and general structure modified from/insipired by [this demo](https://github.com/jdah/doomenstein-3d/blob/main/src/main_doom.c).
 
 ## Building and running
 ### macOS
@@ -27,7 +27,7 @@ $ ./raycast
 You may be able to use the Xcode build system if you'd prefer.
 
 ### Linux
-Install SDL2 with your distribution's package manager (or from source) and run `make`. You may need to modify the include or link flags.
+Install SDL2 with your distribution's package manager (or from source) and run `make`. You may need to modify the include or link flags in the Makefile.
 
 ### Windows
 The Makefile might work with MinGW similarly to how it does on Linux. You could also use the Visual Studio build system instead.
@@ -37,8 +37,9 @@ The Makefile might work with MinGW similarly to how it does on Linux. You could 
 - [Nuklear](https://github.com/Immediate-Mode-UI/Nuklear) and [nuklear_sdl_renderer](https://github.com/Immediate-Mode-UI/Nuklear/blob/master/demo/sdl_renderer/nuklear_sdl_renderer.h)
 - [cJSON](https://github.com/DaveGamble/cJSON)
 
-I chose to include Nuklear and cJSON in this repository, so you won't need to download those in order to build this project. SDL is an external dependency. 
+I chose to include Nuklear and cJSON alongside my source code in this repository, so you won't need to download those in order to build this project. SDL is an external dependency. 
 
+<!--
 ## Possible next steps
 - 🌓 Collision handling
 	- ✅ Basic wall-player collisions
@@ -63,3 +64,4 @@ I chose to include Nuklear and cJSON in this repository, so you won't need to do
 - Mobs
 - HUD
 - Procedural generation
+-->
