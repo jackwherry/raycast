@@ -379,7 +379,7 @@ void deleteWall(struct sector *sector, int index) {
 		if (sector->numwalls > 1) {
 			// shift everything to the left, erasing the wall at the given index
 			//	only required if the sector has two or more walls
-			for (int i = index; i < sector->numwalls - 2; i++) {
+			for (size_t i = index; i < sector->numwalls - 2; i++) {
 				sector->walls[i] = sector->walls[i + 1];
 			}
 		}
@@ -682,7 +682,7 @@ void renderGUI(void) {
 				struct sector *sector = &state.sectors.arr[i + 1];
 
 				char sectorName[128];
-				snprintf(sectorName, 128, "sector %zu, %d walls (%d max)",
+				snprintf(sectorName, 128, "sector %zu, %ld walls (%d max)",
 					i + 1, sector->numwalls, NUMWALLS_MAX);
 
 				nk_layout_row_dynamic(state.ctx, 20, 1);
