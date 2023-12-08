@@ -11,7 +11,7 @@ Features:
 * Immediate mode GUI overlay (using [Nuklear](https://github.com/Immediate-Mode-UI/Nuklear))
 * Level/map editor; modify map geometry while the game is running
 * Visual effects with color and gradients
-* Runs at 60 frames per second using software rendering 
+* Runs at 60 frames per second using software rendering (even on a 12-year-old ThinkPad X220)
 
 Inspired by https://www.youtube.com/watch?v=fSjc8vLMg8c and https://www.youtube.com/watch?v=HQYsFshbkYw. Some renderer code and general structure modified from/insipired by [this demo](https://github.com/jdah/doomenstein-3d/blob/main/src/main_doom.c).
 
