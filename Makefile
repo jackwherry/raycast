@@ -1,14 +1,14 @@
 # Determine operating system
 UNAME_S = $(shell uname -s)
 
-# Use system clang
-CC=clang
+# Use system compiler
+CC=cc
 
 # Compiler flags
 CFLAGS = -I. -O2 -g -std=gnu17 -Wall -Wextra -Wfloat-equal -Wundef 
 CFLAGS += -Wshadow -Wpointer-arith -Wcast-align -Wstrict-prototypes
-CFLAGS += -Wwrite-strings -Waggregate-return -Wcast-qual $(CCINCLUDES)
-CFLAGS += -fsanitize=address # may impact performance slightly, significantly increases memory footprint
+CFLAGS += -Wwrite-strings -Wcast-qual $(CCINCLUDES)
+#CFLAGS += -fsanitize=address,undefined # may impact performance slightly, significantly increases memory footprint
 
 # macOS library stuff
 ifeq ($(UNAME_S), Darwin)
@@ -26,8 +26,7 @@ ifeq ($(UNAME_S), Linux)
 	CCINCLUDES = -I/usr/include/SDL2 -D_REENTRANT
 
 	# Linker flags
-	#	(note: you must have SDL2 installed to /Library/Frameworks)
-	LDFLAGS = -lSDL2
+	LDFLAGS = -lSDL2 -lm
 endif
 
 # .h files go here
