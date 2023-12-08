@@ -23,7 +23,7 @@ endif
 # Linux library stuff (untested!)
 ifeq ($(UNAME_S), Linux)
 	# Outside includes (separate from LDFLAGS to avoid an unused flag warning)
-	CCINCLUDES = 
+	CCINCLUDES = -I/usr/include/SDL2 -D_REENTRANT
 
 	# Linker flags
 	#	(note: you must have SDL2 installed to /Library/Frameworks)

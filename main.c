@@ -400,7 +400,7 @@ void vertline(int x, int yStart, int yEnd, uint32_t color) {
 		if (state.effects) {
 			// intentionally overflow red channel of color for cool results
 			color += ((uint32_t) state.camera.pos.x
-			 + (uint32_t) state.camera.pos.y + 166) / (yEnd - yStart);
+			 + (uint32_t) state.camera.pos.y + 166) / (yEnd+1 - yStart);
 		}
 
 		state.pixels[i] = color;
