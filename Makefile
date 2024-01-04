@@ -17,7 +17,7 @@ ifeq ($(UNAME_S), Darwin)
 
 	# Linker flags
 	#	(note: you must have SDL2 installed to /Library/Frameworks)
-	LDFLAGS = -framework SDL2 -F/Library/Frameworks -I/Library/Frameworks/SDL2.framework/Headers
+	LDFLAGS = -framework SDL2 -F/Library/Frameworks -I/Library/Frameworks/SDL2.framework/Headers -rpath /Library/Frameworks
 endif
 
 # Linux library stuff (untested!)
