@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
@@ -15,6 +14,12 @@
 #define TAU (2.0f * PI)
 #define PI_2 (PI / 2.0f)
 #define PI_4 (PI / 4.0f)
+
+// fake <stdbool.h>
+typedef _Bool bool;
+
+#define false 0
+#define true 1
 
 #define SECTOR_NONE 0
 
