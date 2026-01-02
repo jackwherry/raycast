@@ -87,7 +87,6 @@ struct {
 	char editorFilepath[64];
 	int filepathLength;
 	nk_bool slomo;
-	nk_bool effects;
 	nk_bool noclip;
 
 	struct {
@@ -397,12 +396,6 @@ void vertline(int x, int yStart, int yEnd, uint32_t color) {
 		// force a crash before writing outside array bounds
 		assert(i >= 0 && i < SCREEN_WIDTH * SCREEN_HEIGHT * 4);
 
-		if (state.effects) {
-			// intentionally overflow red channel of color for cool results
-			color += ((uint32_t) state.camera.pos.x
-			 + (uint32_t) state.camera.pos.y + 166) / (yEnd+1 - yStart);
-		}
-
 		state.pixels[i] = color;
 	}
 }
@@ -657,7 +650,6 @@ void renderGUI(void) {
 		nk_checkbox_label(state.ctx, "show map editor", &state.editorOpen);
 		nk_checkbox_label(state.ctx, "print sector BFS errors to console", &state.displayErrors);
 		nk_checkbox_label(state.ctx, "slow motion", &state.slomo);
-		nk_checkbox_label(state.ctx, "visual effects", &state.effects);
 		nk_checkbox_label(state.ctx, "noclip", &state.noclip);
 		if (nk_button_label(state.ctx, "teleport to (2, 2)")) {
 			state.camera.pos = (vect2) { 2.0, 2.0 };
@@ -796,7 +788,6 @@ int main(int argc, char* argv[]) {
 	state.editorOpen = false;
 	state.displayErrors = false;
 	state.slomo = false;
-	state.effects = true;
 	state.noclip = false;
 
 	state.quit = false;
