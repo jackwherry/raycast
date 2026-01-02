@@ -2,7 +2,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <assert.h>
 #include <math.h>
 #include <SDL.h>
 
@@ -378,7 +377,7 @@ void vertline(int x, int yStart, int yEnd, uint32_t color) {
 		int i = (y * SCREEN_WIDTH) + x;
 
 		// force a crash before writing outside array bounds
-		assert(i >= 0 && i < SCREEN_WIDTH * SCREEN_HEIGHT * 4);
+		if (!(i >= 0 && i < SCREEN_WIDTH * SCREEN_HEIGHT * 4)) return;
 
 		state.pixels[i] = color;
 	}
@@ -594,7 +593,7 @@ void render(void) {
 			}
 
 			if (wall->portal) {
-				assert(queue.n < QUEUE_MAX); // make sure we're not out of queue space
+				if (!(queue.n < QUEUE_MAX)) return; // make sure we're not out of queue space
 				queue.arr[queue.n++] = (struct queue_entry) {
 					.id = wall->portal,
 					.x0 = x0,
@@ -610,20 +609,20 @@ int main(int argc, char* argv[]) {
 
 	state.pixels = malloc(SCREEN_WIDTH * SCREEN_HEIGHT * 4);
 
-	assert(SDL_Init(SDL_INIT_VIDEO) == 0);
+	if (!(SDL_Init(SDL_INIT_VIDEO) == 0)) return -1;
 
 	state.window = SDL_CreateWindow(PROJECT_NAME, SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
 		SCREEN_WIDTH*3 , SCREEN_HEIGHT*3,
 		SDL_WINDOW_ALLOW_HIGHDPI);
-	assert(state.window);
+	if (!(state.window)) return -1;
 
 	state.renderer = SDL_CreateRenderer(state.window, -1, SDL_RENDERER_PRESENTVSYNC);
-	assert(state.renderer);
+	if (!(state.renderer)) return -1;
 
 	state.texture = SDL_CreateTexture(state.renderer, SDL_PIXELFORMAT_ABGR8888, 
 		SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
-	assert(state.texture);
+	if (!(state.texture)) return -1;
 
 	state.camera.pos = (vect2) { 2, 2 };
 	state.camera.angle = 0.0;
