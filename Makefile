@@ -30,7 +30,7 @@ ifeq ($(UNAME_S), Linux)
 endif
 
 # .h files go here
-INCLUDES = config.h nuklear.h nuklear_sdl_renderer.h cJSON.h
+INCLUDES = cJSON.h
 
 # .o files go here
 OBJ = main.o cJSON.o
