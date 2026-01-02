@@ -8,18 +8,6 @@
 
 #include "cJSON.h"
 
-#define NK_INCLUDE_FIXED_TYPES
-#define NK_INCLUDE_STANDARD_IO
-#define NK_INCLUDE_STANDARD_VARARGS
-#define NK_INCLUDE_DEFAULT_ALLOCATOR
-#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
-#define NK_INCLUDE_FONT_BAKING
-#define NK_INCLUDE_DEFAULT_FONT
-#define NK_IMPLEMENTATION
-#define NK_SDL_RENDERER_IMPLEMENTATION
-#include "nuklear.h"
-#include "nuklear_sdl_renderer.h"
-
 #define PROJECT_NAME "Raycast"
 #define SCREEN_WIDTH 384
 #define SCREEN_HEIGHT 256
@@ -81,13 +69,9 @@ struct {
 	SDL_Texture *texture;
 	uint32_t *pixels;
 
-	struct nk_context *ctx;
-	nk_bool editorOpen;
-	nk_bool displayErrors;
-	char editorFilepath[64];
-	int filepathLength;
-	nk_bool slomo;
-	nk_bool noclip;
+	bool displayErrors;
+	bool slomo;
+	bool noclip;
 
 	struct {
 		struct sector arr[NUMSECTORS_MAX]; size_t n;
@@ -417,7 +401,6 @@ void present(void) {
 
 	SDL_RenderCopyEx(state.renderer, state.texture, 
 		NULL, NULL, 0.0, NULL, SDL_FLIP_VERTICAL);
-	nk_sdl_render(NK_ANTI_ALIASING_ON);
 	SDL_RenderPresent(state.renderer);
 }
 
@@ -622,101 +605,6 @@ void render(void) {
 	}
 }
 
-void renderGUI(void) {
-	nk_flags window_flags = NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|
-		NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE;
-
-	// main debug window
-	if (nk_begin(state.ctx, "debug", nk_rect(50, 50, 230, 250), window_flags)) {
-		// general info about player position
-		char coords[128];
-		char sector[64];
-		char facing[128];
-		char cos_sin[128];
-
-		snprintf(coords, 128, "x, y: %f, %f", state.camera.pos.x, state.camera.pos.y);
-		snprintf(cos_sin, 128, "cos, sin: %f, %f", 
-			state.camera.anglecos, state.camera.anglesin);
-		snprintf(facing, 128, "facing: %f (%f) ", 
-			state.camera.angle, normalizeAngle(state.camera.angle));
-		snprintf(sector, 64, "sector: %d", state.camera.sector);
-
-		nk_layout_row_dynamic(state.ctx, 20, 1);
-		nk_label(state.ctx, coords, NK_TEXT_LEFT);
-		nk_label(state.ctx, cos_sin, NK_TEXT_LEFT);
-		nk_label(state.ctx, facing, NK_TEXT_LEFT);
-		nk_label(state.ctx, sector, NK_TEXT_LEFT);
-
-		nk_checkbox_label(state.ctx, "show map editor", &state.editorOpen);
-		nk_checkbox_label(state.ctx, "print sector BFS errors to console", &state.displayErrors);
-		nk_checkbox_label(state.ctx, "slow motion", &state.slomo);
-		nk_checkbox_label(state.ctx, "noclip", &state.noclip);
-		if (nk_button_label(state.ctx, "teleport to (2, 2)")) {
-			state.camera.pos = (vect2) { 2.0, 2.0 };
-		}
-		
-	}
-	nk_end(state.ctx); 
-
-	// map editor window
-	if (state.editorOpen) {
-		if (nk_begin(state.ctx, "map editor", nk_rect(330, 300, 300, 300), window_flags)) {
-			// display the number of sectors added
-			char sectors[64];
-
-			// sectors start at 1, walls start at 0
-			snprintf(sectors, 64, "sectors: %zu/%d", state.sectors.n - 1, NUMSECTORS_MAX);
-
-			nk_layout_row_dynamic(state.ctx, 20, 1);
-			nk_label(state.ctx, sectors, NK_TEXT_CENTERED);
-
-			for (size_t i = 0; i < state.sectors.n - 1; i++) {
-				struct sector *sector = &state.sectors.arr[i + 1];
-
-				char sectorName[128];
-				snprintf(sectorName, 128, "sector %zu, %ld walls (%d max)",
-					i + 1, sector->numwalls, NUMWALLS_MAX);
-
-				nk_layout_row_dynamic(state.ctx, 20, 1);
-				if (nk_tree_push(state.ctx, NK_TREE_TAB, sectorName, NK_MAXIMIZED)) {
-					nk_layout_row_dynamic(state.ctx, 20, 2);
-					nk_property_float(state.ctx, "#zfloor", 0.0f, &sector->zfloor, EYE_Z, 0.1f, 0.1f);
-					nk_property_float(state.ctx, "#zceil", EYE_Z, &sector->zceil, ZFAR, 0.1f, 0.1f);
-
-					for (size_t j = 0; j < sector->numwalls; j++) {
-						char wallName[64];
-						snprintf(wallName, 64, "wall %zu", j);
-
-						struct wall *wall = &sector->walls[j];
-
-						nk_layout_row_dynamic(state.ctx, 20, 1);
-						nk_label(state.ctx, wallName, NK_TEXT_LEFT);
-						nk_layout_row_dynamic(state.ctx, 20, 2);
-						nk_property_int(state.ctx, "#a.x", 0, &wall->a.x, (int) ZFAR, 1, 1);
-						nk_property_int(state.ctx, "#a.y", 0, &wall->a.y, (int) ZFAR, 1, 1);
-						nk_property_int(state.ctx, "#b.x", 0, &wall->b.x, (int) ZFAR, 1, 1);
-						nk_property_int(state.ctx, "#b.y", 0, &wall->b.y, (int) ZFAR, 1, 1);
-						nk_property_int(state.ctx, "#portal to", 0,
-							&wall->portal, state.sectors.n - 1, 1, 1);
-						if (nk_button_label(state.ctx, "delete wall")) {
-							deleteWall(sector, j);
-						}
-					}
-					nk_layout_row_dynamic(state.ctx, 20, 2);
-					if (nk_button_label(state.ctx, "new wall")) {
-						newWall(sector);
-					}
-					nk_tree_pop(state.ctx);
-				}
-			}
-			if (nk_button_label(state.ctx, "new sector")) {
-				newSector();
-			}
-		}
-		nk_end(state.ctx);
-	}
-}
-
 int main(int argc, char* argv[]) {
 	printf("Starting " PROJECT_NAME "... \n");
 
@@ -757,14 +645,6 @@ int main(int argc, char* argv[]) {
 
 	fprintf(stderr, "Loaded %zu sectors\n", state.sectors.n - 1);
 
-	// set up GUI
-	state.ctx = nk_sdl_init(state.window, state.renderer);
-	float font_scale = 1;
-
-	struct nk_font_atlas *atlas;
-	struct nk_font_config config = nk_font_config(0);
-	struct nk_font *font;
-
 	/* scale the renderer output for High-DPI displays */
 	{
 		int render_w, render_h;
@@ -775,17 +655,8 @@ int main(int argc, char* argv[]) {
 		scale_x = (float)(render_w) / (float)(window_w);
 		scale_y = (float)(render_h) / (float)(window_h);
 		SDL_RenderSetScale(state.renderer, scale_x, scale_y);
-		font_scale = scale_y;
 	}
 
-	nk_sdl_font_stash_begin(&atlas);
-	font = nk_font_atlas_add_default(atlas, 13 * font_scale, &config); 
-	nk_sdl_font_stash_end();
-
-	font->handle.height /= font_scale;
-	nk_style_set_font(state.ctx, &font->handle);
-
-	state.editorOpen = false;
 	state.displayErrors = false;
 	state.slomo = false;
 	state.noclip = false;
@@ -793,17 +664,12 @@ int main(int argc, char* argv[]) {
 	state.quit = false;
 	while (!state.quit) {
 		SDL_Event e;
-		nk_input_begin(state.ctx);
 
 		while (SDL_PollEvent(&e)) {
 			if (e.type == SDL_QUIT) {
 				state.quit = true;
 			}
-			nk_sdl_handle_event(&e);
 		}
-
-		nk_input_end(state.ctx);
-		renderGUI();
 
 		const float rotspeed = 3.0f * 0.016f;
 		const float movespeed = 3.0f * 0.016f;
