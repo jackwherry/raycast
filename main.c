@@ -4,8 +4,6 @@
 #include <math.h>
 #include <SDL.h>
 
-#include "cJSON.h"
-
 #define PROJECT_NAME "Raycast"
 #define SCREEN_WIDTH 384
 #define SCREEN_HEIGHT 256

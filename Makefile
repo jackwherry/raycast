@@ -30,10 +30,10 @@ ifeq ($(UNAME_S), Linux)
 endif
 
 # .h files go here
-INCLUDES = cJSON.h
+INCLUDES =
 
 # .o files go here
-OBJ = main.o cJSON.o
+OBJ = main.o
 
 # Generate all the .o files
 %.o: %.c $(INCLUDES)
