@@ -207,139 +207,52 @@ vect2 worldPosToCamera(vect2 p) {
 	};
 }
 
-// load sectors and walls from file
-int loadSectors(const char *path) {
-	state.sectors.n = 1; // there's no sector 0
+int loadSectors(void) {
+	state.sectors.n = 1;
 
-	FILE *f = fopen(path, "r");
-	if (!f) return -1; // file not found (or couldn't be opened)
-
-	char *buf = malloc(1024 * 128); // 128 KB
-
-	int retval = 0;
-	fseek(f, 0L, SEEK_END); // seek to the end of the file
-	long size = ftell(f); // get position, equivalent to the size of the file
-	rewind(f); // go back to the beginning of the file
-
-	if (size == -1) { retval = -2; goto done; } // error reading file size
-
-	if (size > (long) 1024 * 128 - 8) {
-		retval = -3; goto done; // file size too large
-	}
-
-	size_t newLen = fread(buf, sizeof(char), 1024 * 128, f);
-	buf[++newLen] = '\0'; // guarantee that it's null-terminated
-
-	if (ferror(f)) { retval = -128; goto done; }
-
-	cJSON *json = cJSON_Parse(buf);
-	if (!json) {
-		const char *error_ptr = cJSON_GetErrorPtr();
-		if (error_ptr) {
-			// fprintf(stderr, "%s", error_ptr);
-		}
-		retval = -4; goto done;
-	}
-
-	cJSON *csector = NULL;
-	cJSON *csectors = cJSON_GetObjectItemCaseSensitive(json, "sectors"); // does null check for us
-	if (!cJSON_IsArray(csectors)) {
-		retval = -5; goto done;
-	}
-
-	for (csector = csectors->child; csector != NULL; csector = csector->next) {
-		cJSON *cid = cJSON_GetArrayItem(csector, 0);
-		if (!cJSON_IsNumber(cid)) {
-			retval  = -7; goto done;
-		}
-		int id = (int) cJSON_GetNumberValue(cid);
-
-		if (id >= NUMSECTORS_MAX) {
-			retval = -18; goto done;
-		}
-
-		struct sector *sector = &state.sectors.arr[id];
-		sector->id = id;
-
-		cJSON *czfloor = cJSON_GetArrayItem(csector, 1);
-		if(!cJSON_IsNumber(czfloor)) {
-			retval = -8; goto done;
-		}
-		float zfloor = (float) cJSON_GetNumberValue(czfloor);
-		sector->zfloor = zfloor;
-
-		cJSON *czceil = cJSON_GetArrayItem(csector, 2);
-		if (!cJSON_IsNumber(czceil)) {
-			retval = -9; goto done;
-		}
-		float zceil = (float) cJSON_GetNumberValue(czceil);
-		sector->zceil = zceil;
-
-		cJSON *cwalls = cJSON_GetArrayItem(csector, 3);
-		cJSON *cwall = NULL;
-		if (!cJSON_IsArray(cwalls)) {
-			retval = -10; goto done;
-		}
-
-		int numwalls = cJSON_GetArraySize(cwalls);
-		sector->numwalls = numwalls;
-
-		int i = 0;
-		for (cwall = cwalls->child; cwall != NULL; cwall = cwall->next) {
-			if (i >= NUMWALLS_MAX) {
-				retval = -17; goto done;
+	struct sector initialSectors[] = {
+		{
+			.id = 1, .zfloor = 0.0f, .zceil = 5.0f, .numwalls = 8,
+			.walls = {
+				{{4, 1}, {2, 1}, 0}, {{5, 2}, {4, 1}, 0}, {{5, 3}, {5, 2}, 0},
+				{{4, 4}, {5, 3}, 3}, {{2, 4}, {4, 4}, 0}, {{1, 3}, {2, 4}, 2},
+				{{1, 2}, {1, 3}, 0}, {{2, 1}, {1, 2}, 0}
 			}
-
-			if (cJSON_GetArraySize(cwall) != 5) {
-				retval = -11; goto done;
+		},
+		{
+			.id = 2, .zfloor = 1.0f, .zceil = 4.0f, .numwalls = 3,
+			.walls = {
+				{{2, 4}, {1, 3}, 1}, {{1, 5}, {2, 4}, 0}, {{1, 3}, {1, 5}, 0}
 			}
-
-			cJSON *cx0 = cJSON_GetArrayItem(cwall, 0);
-			if (!cJSON_IsNumber(cx0)) {
-				retval = -12; goto done;
+		},
+		{
+			.id = 3, .zfloor = 0.2f, .zceil = 6.0f, .numwalls = 4,
+			.walls = {
+				{{5, 3}, {4, 4}, 1}, {{6, 5}, {5, 3}, 0}, {{6, 7}, {6, 5}, 4},
+				{{4, 4}, {6, 7}, 0}
 			}
-			int x0 = (int) cJSON_GetNumberValue(cx0);
-
-			cJSON *cy0 = cJSON_GetArrayItem(cwall, 1);
-			if (!cJSON_IsNumber(cy0)) {
-				retval = -13; goto done;
+		},
+		{
+			.id = 4, .zfloor = 0.0f, .zceil = 3.0f, .numwalls = 5,
+			.walls = {
+				{{7, 4}, {6, 5}, 0}, {{8, 5}, {7, 4}, 0}, {{8, 7}, {8, 5}, 0},
+				{{6, 7}, {8, 7}, 0}, {{6, 5}, {6, 7}, 3}
 			}
-			int y0 = (int) cJSON_GetNumberValue(cy0);
-
-			cJSON *cx1 = cJSON_GetArrayItem(cwall, 2);
-			if (!cJSON_IsNumber(cx1)) {
-				retval = -14; goto done;
-			}
-			int x1 = (int) cJSON_GetNumberValue(cx1);
-
-			cJSON *cy1 = cJSON_GetArrayItem(cwall, 3);
-			if (!cJSON_IsNumber(cy1)) {
-				retval = -15; goto done;
-			}
-			int y1 = (int) cJSON_GetNumberValue(cy1);
-
-			cJSON *cportal = cJSON_GetArrayItem(cwall, 4);
-			if (!cJSON_IsNumber(cportal)) {
-				retval = -16; goto done;
-			}
-			int portal = (int) cJSON_GetNumberValue(cportal);
-
-			vect2i a = { x0, y0 };
-			vect2i b = { x1, y1 };
-
-			sector->walls[i] = (struct wall) { a, b, portal };
-			i++;
 		}
+	};
+
+	int numToLoad = sizeof(initialSectors) / sizeof(struct sector);
+
+	for (int i = 0; i < numToLoad; i++) {
+		int id = initialSectors[i].id;
+
+		if (id >= NUMSECTORS_MAX) return -18;
+
+		state.sectors.arr[id] = initialSectors[i];
 		state.sectors.n++;
 	}
 
-	// free memory used by json object;
-	//	not critical to do in 'done' since the program's about to terminate if there's any error
-	cJSON_Delete(json);
-done:
-	fclose(f);
-	free(buf);
-	return retval;
+    return 0;
 }
 
 void newSector(void) {
@@ -610,8 +523,6 @@ void render(void) {
 }
 
 int main(int argc, char* argv[]) {
-	printf("Starting " PROJECT_NAME "... \n");
-
 	state.pixels = malloc(SCREEN_WIDTH * SCREEN_HEIGHT * 4);
 
 	if (!(SDL_Init(SDL_INIT_VIDEO) == 0)) return -1;
@@ -636,18 +547,7 @@ int main(int argc, char* argv[]) {
 	state.positionBeforeWorldExit = state.camera.pos;
 	state.sectorBeforeWorldExit = 1;
 
-	if (argc == 2) {
-		int status = loadSectors(argv[1]);
-		if (status != 0) {
-			fprintf(stderr, "Error loading level file: %d\n", status);
-			goto exit;
-		}
-	} else {
-		fprintf(stderr, "Usage: %s [level file]\n", argv[0]);
-		goto exit;
-	}
-
-	fprintf(stderr, "Loaded %zu sectors\n", state.sectors.n - 1);
+	loadSectors();
 
 	/* scale the renderer output for High-DPI displays */
 	{
