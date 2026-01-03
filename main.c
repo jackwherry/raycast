@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <stdint.h>
 #include <math.h>
 #include <SDL.h>
@@ -71,7 +70,6 @@ struct {
 	SDL_Texture *texture;
 	uint32_t *pixels;
 
-	bool displayErrors;
 	bool slomo;
 	bool noclip;
 
@@ -559,7 +557,6 @@ int main(int argc, char* argv[]) {
 		SDL_RenderSetScale(state.renderer, scale_x, scale_y);
 	}
 
-	state.displayErrors = false;
 	state.slomo = false;
 	state.noclip = false;
 
@@ -626,7 +623,6 @@ int main(int argc, char* argv[]) {
 
 					if (wall->portal) {
 						if (n == QUEUE_MAX) {
-							if (state.displayErrors) fprintf(stderr, "out of queue space in sector BFS\n");
 							goto done;
 						}
 						queue [(i + n) % QUEUE_MAX] = wall->portal;
@@ -636,7 +632,6 @@ int main(int argc, char* argv[]) {
 			}
 done:
 			if (!found) {
-				if (state.displayErrors) fprintf(stderr, "player is not in a sector\n");
 				outsideWorld = true;
 			} else {
 				state.camera.sector = found;
